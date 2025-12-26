@@ -148,10 +148,38 @@ The Borrower shall maintain a Transition Proceeds Account and shall provide quar
   },
 ];
 
+// Available clause types for filtering
+const CLAUSE_TYPES = [
+  'interest',
+  'facility_terms',
+  'events_of_default',
+  'security',
+  'prepayment',
+  'margin_ratchet',
+  'conditions_precedent',
+  'representations',
+  'fees',
+  'verification',
+  'reporting_covenant',
+  'kpi_definition',
+  'spt_definition',
+  'use_of_proceeds',
+];
+
+// Available document types for filtering
+const DOCUMENT_TYPES = [
+  'facility_agreement',
+  'guide',
+  'glossary',
+  'markup',
+  'briefing',
+  'document',
+];
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { query, filters, limit = 5 } = body;
+    const { query, filters, limit = 10 } = body;
 
     if (!query) {
       return NextResponse.json(
@@ -161,6 +189,7 @@ export async function POST(request: NextRequest) {
     }
 
     let results: any[] = [];
+    let source = 'sample_templates';
 
     try {
       // Check if Pinecone has data
@@ -171,11 +200,34 @@ export async function POST(request: NextRequest) {
         // Generate embedding for query
         const queryEmbedding = await generateEmbedding(query);
 
+        // Build Pinecone filter from provided filters
+        let pineconeFilter: Record<string, any> | undefined;
+        if (filters) {
+          pineconeFilter = {};
+          if (filters.clauseType) {
+            pineconeFilter.clauseType = { $eq: filters.clauseType };
+          }
+          if (filters.documentType) {
+            pineconeFilter.documentType = { $eq: filters.documentType };
+          }
+          if (filters.source) {
+            pineconeFilter.source = { $eq: filters.source };
+          }
+          // If empty, set to undefined
+          if (Object.keys(pineconeFilter).length === 0) {
+            pineconeFilter = undefined;
+          }
+        }
+
         // Search Pinecone
         results = await searchDocuments(queryEmbedding, {
           topK: limit,
-          filter: filters,
+          filter: pineconeFilter,
         });
+
+        if (results.length > 0) {
+          source = 'pinecone';
+        }
       }
     } catch (error) {
       console.log('Pinecone search failed, using fallback:', error);
@@ -224,7 +276,14 @@ export async function POST(request: NextRequest) {
       results,
       totalFound: results.length,
       query,
-      source: results.length > 0 && results[0].score > 0.8 ? 'pinecone' : 'sample_templates',
+      source,
+      filters: {
+        applied: filters || null,
+        available: {
+          clauseTypes: CLAUSE_TYPES,
+          documentTypes: DOCUMENT_TYPES,
+        },
+      },
     });
 
   } catch (error) {
@@ -233,5 +292,32 @@ export async function POST(request: NextRequest) {
       { error: 'Search failed' },
       { status: 500 }
     );
+  }
+}
+
+// GET endpoint for metadata and index stats
+export async function GET() {
+  try {
+    const stats = await getIndexStats();
+
+    return NextResponse.json({
+      indexStats: {
+        totalVectors: stats?.totalRecordCount || 0,
+        dimension: stats?.dimension || 384,
+      },
+      filters: {
+        clauseTypes: CLAUSE_TYPES,
+        documentTypes: DOCUMENT_TYPES,
+      },
+    });
+  } catch (error) {
+    console.error('Failed to get search metadata:', error);
+    return NextResponse.json({
+      indexStats: { totalVectors: 0, dimension: 384 },
+      filters: {
+        clauseTypes: CLAUSE_TYPES,
+        documentTypes: DOCUMENT_TYPES,
+      },
+    });
   }
 }

@@ -18,7 +18,8 @@ export function getPineconeClient(): Pinecone {
 
 export function getIndex() {
   const client = getPineconeClient();
-  const indexName = process.env.PINECONE_INDEX || 'lma-edge-hackathon';
+  // Use the new 384-dimension index for BGE embeddings
+  const indexName = process.env.PINECONE_INDEX_384 || 'lma-clauses-384';
   return client.index(indexName);
 }
 
