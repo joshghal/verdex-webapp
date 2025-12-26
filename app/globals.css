@@ -15,22 +15,22 @@
 }
 
 /* ============================================
-   VERIDIAN - Premium Green Finance Brand
+   VERDEX - Premium Green Finance Brand
    ============================================ */
 
 :root {
   /* Primary - Deep Teal Green (Trustworthy, Financial) */
-  --veridian-50: #ecfdf5;
-  --veridian-100: #d1fae5;
-  --veridian-200: #a7f3d0;
-  --veridian-300: #6ee7b7;
-  --veridian-400: #34d399;
-  --veridian-500: #10b981;
-  --veridian-600: #059669;
-  --veridian-700: #047857;
-  --veridian-800: #065f46;
-  --veridian-900: #064e3b;
-  --veridian-950: #022c22;
+  --verdex-50: #ecfdf5;
+  --verdex-100: #d1fae5;
+  --verdex-200: #a7f3d0;
+  --verdex-300: #6ee7b7;
+  --verdex-400: #34d399;
+  --verdex-500: #10b981;
+  --verdex-600: #059669;
+  --verdex-700: #047857;
+  --verdex-800: #065f46;
+  --verdex-900: #064e3b;
+  --verdex-950: #022c22;
 
   /* Secondary - Finance Navy (Credibility) */
   --navy-50: #f0f4f8;
@@ -74,15 +74,15 @@ body {
    ============================================ */
 
 .gradient-text {
-  @apply bg-gradient-to-r from-veridian-700 via-veridian-600 to-veridian-500 bg-clip-text text-transparent;
+  @apply bg-gradient-to-r from-verdex-700 via-verdex-600 to-verdex-500 bg-clip-text text-transparent;
 }
 
 .gradient-text-gold {
-  @apply bg-gradient-to-r from-veridian-700 to-gold-600 bg-clip-text text-transparent;
+  @apply bg-gradient-to-r from-verdex-700 to-gold-600 bg-clip-text text-transparent;
 }
 
 .gradient-bg {
-  @apply bg-gradient-to-br from-veridian-50 via-white to-veridian-100;
+  @apply bg-gradient-to-br from-verdex-50 via-white to-verdex-100;
 }
 
 .gradient-bg-hero {
@@ -90,7 +90,7 @@ body {
 }
 
 .gradient-bg-dark {
-  @apply bg-gradient-to-br from-veridian-900 via-veridian-800 to-navy-900;
+  @apply bg-gradient-to-br from-verdex-900 via-verdex-800 to-navy-900;
 }
 
 /* ============================================
@@ -103,19 +103,19 @@ body {
 }
 
 .card-hover {
-  @apply hover:border-veridian-200 hover:-translate-y-1 transition-all duration-300;
+  @apply hover:border-verdex-200 hover:-translate-y-1 transition-all duration-300;
 }
 .card-hover:hover {
   box-shadow: 0 12px 32px rgba(5, 150, 105, 0.1);
 }
 
 .card-premium {
-  @apply bg-white rounded-xl border border-veridian-100 p-6;
+  @apply bg-white rounded-xl border border-verdex-100 p-6;
   box-shadow: 0 4px 16px -1px rgba(5, 150, 105, 0.08), 0 2px 6px -1px rgba(5, 150, 105, 0.04);
 }
 
 .card-dark {
-  @apply bg-veridian-900 text-white rounded-xl shadow-lg p-6;
+  @apply bg-verdex-900 text-white rounded-xl shadow-lg p-6;
 }
 
 /* ============================================
@@ -123,15 +123,15 @@ body {
    ============================================ */
 
 .btn-primary {
-  @apply bg-veridian-700 hover:bg-veridian-800 text-white font-semibold py-2.5 px-5 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md;
+  @apply bg-verdex-700 hover:bg-verdex-800 text-white font-semibold py-2.5 px-5 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md;
 }
 
 .btn-primary:active {
-  @apply bg-veridian-900 transform scale-[0.98];
+  @apply bg-verdex-900 transform scale-[0.98];
 }
 
 .btn-secondary {
-  @apply bg-white hover:bg-veridian-50 text-veridian-800 font-semibold py-2.5 px-5 rounded-lg border-2 border-veridian-200 hover:border-veridian-300 transition-all duration-200;
+  @apply bg-white hover:bg-verdex-50 text-verdex-800 font-semibold py-2.5 px-5 rounded-lg border-2 border-verdex-200 hover:border-verdex-300 transition-all duration-200;
 }
 
 .btn-gold {
@@ -139,7 +139,7 @@ body {
 }
 
 .btn-outline {
-  @apply bg-transparent hover:bg-veridian-50 text-veridian-700 font-medium py-2 px-4 rounded-lg border border-veridian-300 hover:border-veridian-400 transition-all duration-200;
+  @apply bg-transparent hover:bg-verdex-50 text-verdex-700 font-medium py-2 px-4 rounded-lg border border-verdex-300 hover:border-verdex-400 transition-all duration-200;
 }
 
 .btn-ghost {
@@ -152,7 +152,7 @@ body {
 
 .input {
   @apply w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400;
-  @apply focus:ring-2 focus:ring-veridian-500 focus:border-veridian-500 focus:ring-opacity-50;
+  @apply focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 focus:ring-opacity-50;
   @apply outline-none transition-all duration-200;
 }
 
@@ -162,7 +162,7 @@ body {
 
 .select {
   @apply w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900;
-  @apply focus:ring-2 focus:ring-veridian-500 focus:border-veridian-500 focus:ring-opacity-50;
+  @apply focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 focus:ring-opacity-50;
   @apply outline-none transition-all duration-200 cursor-pointer;
 }
 
@@ -172,7 +172,7 @@ body {
 
 .textarea {
   @apply w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400;
-  @apply focus:ring-2 focus:ring-veridian-500 focus:border-veridian-500 focus:ring-opacity-50;
+  @apply focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 focus:ring-opacity-50;
   @apply outline-none transition-all duration-200 resize-none;
 }
 
@@ -182,7 +182,7 @@ body {
 
 /* Eligibility Status */
 .status-eligible {
-  @apply bg-veridian-50 text-veridian-800 border-veridian-200;
+  @apply bg-verdex-50 text-verdex-800 border-verdex-200;
 }
 
 .status-partial {
@@ -195,7 +195,7 @@ body {
 
 /* Score Colors */
 .score-high {
-  @apply text-veridian-700 bg-veridian-50;
+  @apply text-verdex-700 bg-verdex-50;
 }
 
 .score-medium {
@@ -208,7 +208,7 @@ body {
 
 /* Risk Badges */
 .risk-low {
-  @apply bg-veridian-100 text-veridian-800 px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide;
+  @apply bg-verdex-100 text-verdex-800 px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide;
 }
 
 .risk-medium {
@@ -228,7 +228,7 @@ body {
 }
 
 .progress-fill-high {
-  @apply h-full bg-gradient-to-r from-veridian-500 to-veridian-400 rounded-full transition-all duration-500;
+  @apply h-full bg-gradient-to-r from-verdex-500 to-verdex-400 rounded-full transition-all duration-500;
 }
 
 .progress-fill-medium {
@@ -267,7 +267,7 @@ body {
 }
 
 .text-brand {
-  @apply text-veridian-700;
+  @apply text-verdex-700;
 }
 
 /* ============================================
@@ -430,6 +430,21 @@ body {
 
 .pulse-green {
   animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-green-glow {
+  0%, 100% {
+    opacity: 0.08;
+    filter: brightness(0.6) sepia(100%) hue-rotate(100deg) saturate(200%) drop-shadow(0 0 0px rgba(16, 185, 129, 0));
+  }
+  50% {
+    opacity: 0.18;
+    filter: brightness(0.8) sepia(100%) hue-rotate(100deg) saturate(300%) drop-shadow(0 0 30px rgba(16, 185, 129, 0.5));
+  }
+}
+
+.animate-pulse-green {
+  animation: pulse-green-glow 2s ease-in-out infinite;
 }
 
 @keyframes shimmer {

@@ -343,10 +343,10 @@ export default function AssessPage() {
         <div className="max-w-4xl mx-auto px-4 relative z-10">
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 glass-card rounded-full px-4 py-2 mb-6">
-              <svg className="w-5 h-5 text-veridian-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5 text-verdex-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span className="text-sm font-medium text-veridian-800">LMA Compliant Assessment</span>
+              <span className="text-sm font-medium text-verdex-800">LMA Compliant Assessment</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-display font-medium text-gray-900 mb-4">Project Assessment</h1>
             <p className="text-lg text-gray-600 max-w-xl mx-auto">
@@ -358,9 +358,9 @@ export default function AssessPage() {
             {/* Upload Option */}
             <button
               onClick={() => setMode('upload')}
-              className="choice-card group glass-card rounded-3xl p-8 hover:bg-white/90 transition-all duration-300 text-left border-2 border-transparent hover:border-veridian-400 hover:shadow-xl hover:-translate-y-1"
+              className="choice-card group glass-card rounded-3xl p-8 hover:bg-white/90 transition-all duration-300 text-left border-2 border-transparent hover:border-verdex-400 hover:shadow-xl hover:-translate-y-1"
             >
-              <div className="w-16 h-16 bg-gradient-to-br from-veridian-500 to-veridian-700 rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform">
+              <div className="w-16 h-16 bg-gradient-to-br from-verdex-500 to-verdex-700 rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
@@ -369,7 +369,7 @@ export default function AssessPage() {
               <p className="text-gray-600 mb-4">
                 Upload a project proposal, transition plan, or sustainability report. Our AI will extract the data and assess it automatically.
               </p>
-              <div className="flex items-center text-veridian-600 font-semibold">
+              <div className="flex items-center text-verdex-600 font-semibold">
                 <span>Quick & Automated</span>
                 <svg className="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -417,7 +417,7 @@ export default function AssessPage() {
         <div className="max-w-2xl mx-auto px-4 relative z-10">
           <button
             onClick={() => setMode(null)}
-            className="flex items-center text-gray-600 hover:text-veridian-700 mb-8 transition-colors font-medium"
+            className="flex items-center text-gray-600 hover:text-verdex-700 mb-8 transition-colors font-medium"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -436,10 +436,10 @@ export default function AssessPage() {
             <div
               className={`glass-card rounded-3xl p-12 border-3 border-dashed transition-all duration-300 ${
                 dragOver
-                  ? 'border-veridian-500 bg-veridian-50/80 scale-[1.02]'
+                  ? 'border-verdex-500 bg-verdex-50/80 scale-[1.02]'
                   : uploadLoading
-                    ? 'border-veridian-400 bg-veridian-50/60'
-                    : 'border-gray-300 hover:border-veridian-400'
+                    ? 'border-verdex-400 bg-verdex-50/60'
+                    : 'border-gray-300 hover:border-verdex-400'
               }`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -448,8 +448,8 @@ export default function AssessPage() {
               {uploadLoading ? (
                 <div className="text-center space-y-4">
                   <div className="w-16 h-16 mx-auto relative">
-                    <div className="absolute inset-0 border-4 border-veridian-200 rounded-full"></div>
-                    <div className="absolute inset-0 border-4 border-veridian-600 rounded-full border-t-transparent animate-spin"></div>
+                    <div className="absolute inset-0 border-4 border-verdex-200 rounded-full"></div>
+                    <div className="absolute inset-0 border-4 border-verdex-600 rounded-full border-t-transparent animate-spin"></div>
                   </div>
                   <p className="text-lg font-medium text-gray-900">{uploadProgress}</p>
                   <p className="text-sm text-gray-500">This may take a few moments...</p>
@@ -468,7 +468,7 @@ export default function AssessPage() {
                     <p className="text-gray-500 mb-4">or</p>
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="bg-veridian-700 hover:bg-veridian-800 text-white font-semibold px-8 py-3 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105"
+                      className="bg-verdex-700 hover:bg-verdex-800 text-white font-semibold px-8 py-3 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105"
                     >
                       Browse Files
                     </button>
@@ -514,7 +514,7 @@ export default function AssessPage() {
       <div className="max-w-3xl mx-auto px-4 relative z-10">
         <button
           onClick={() => setMode(null)}
-          className="flex items-center text-gray-600 hover:text-veridian-700 mb-8 transition-colors font-medium"
+          className="flex items-center text-gray-600 hover:text-verdex-700 mb-8 transition-colors font-medium"
         >
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -536,7 +536,7 @@ export default function AssessPage() {
               <div key={s} className="flex items-center">
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors ${
-                    step >= s ? 'bg-veridian-600 text-white' : 'bg-gray-200 text-gray-500'
+                    step >= s ? 'bg-verdex-600 text-white' : 'bg-gray-200 text-gray-500'
                   }`}
                 >
                   {step > s ? (
@@ -547,7 +547,7 @@ export default function AssessPage() {
                     s
                   )}
                 </div>
-                <span className={`ml-2 text-sm font-medium hidden sm:block ${step >= s ? 'text-veridian-600' : 'text-gray-400'}`}>
+                <span className={`ml-2 text-sm font-medium hidden sm:block ${step >= s ? 'text-verdex-600' : 'text-gray-400'}`}>
                   {s === 1 && 'Basic Info'}
                   {s === 2 && 'Financials'}
                   {s === 3 && 'Emissions'}
@@ -567,7 +567,7 @@ export default function AssessPage() {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Project Name *</label>
                   <input
                     type="text"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-veridian-500 focus:border-veridian-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
                     value={formData.projectName}
                     onChange={(e) => updateField('projectName', e.target.value)}
                     placeholder="e.g., Turkana Wind Power Phase 2"
@@ -578,7 +578,7 @@ export default function AssessPage() {
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Country *</label>
                     <select
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 bg-white focus:ring-2 focus:ring-veridian-500 focus:border-veridian-500 transition-colors"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 bg-white focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
                       value={formData.country}
                       onChange={(e) => updateField('country', e.target.value)}
                     >
@@ -590,7 +590,7 @@ export default function AssessPage() {
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Sector *</label>
                     <select
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 bg-white focus:ring-2 focus:ring-veridian-500 focus:border-veridian-500 transition-colors"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 bg-white focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
                       value={formData.sector}
                       onChange={(e) => updateField('sector', e.target.value)}
                     >
@@ -605,7 +605,7 @@ export default function AssessPage() {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Project Type</label>
                   <input
                     type="text"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-veridian-500 focus:border-veridian-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
                     value={formData.projectType}
                     onChange={(e) => updateField('projectType', e.target.value)}
                     placeholder="e.g., Wind Farm, Solar PV, Coal-to-Gas Transition"
@@ -615,7 +615,7 @@ export default function AssessPage() {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Project Description *</label>
                   <textarea
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-veridian-500 focus:border-veridian-500 transition-colors min-h-[120px]"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors min-h-[120px]"
                     value={formData.description}
                     onChange={(e) => updateField('description', e.target.value)}
                     placeholder="Describe the project, its objectives, and transition goals..."
@@ -633,7 +633,7 @@ export default function AssessPage() {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Total Project Cost *</label>
                   <input
                     type="number"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-veridian-500 focus:border-veridian-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
                     value={formData.totalCost || ''}
                     onChange={(e) => updateField('totalCost', Number(e.target.value))}
                     placeholder="e.g., 150000000"
@@ -650,7 +650,7 @@ export default function AssessPage() {
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Debt Amount</label>
                     <input
                       type="number"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-veridian-500 focus:border-veridian-500 transition-colors"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
                       value={formData.debtAmount || ''}
                       onChange={(e) => updateField('debtAmount', Number(e.target.value))}
                       placeholder="e.g., 120000000"
@@ -660,7 +660,7 @@ export default function AssessPage() {
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Equity Amount</label>
                     <input
                       type="number"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-veridian-500 focus:border-veridian-500 transition-colors"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
                       value={formData.equityAmount || ''}
                       onChange={(e) => updateField('equityAmount', Number(e.target.value))}
                       placeholder="e.g., 30000000"
@@ -690,7 +690,7 @@ export default function AssessPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">Scope 1</label>
                       <input
                         type="number"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-veridian-500 focus:border-veridian-500 transition-colors"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
                         value={formData.currentScope1 || ''}
                         onChange={(e) => updateField('currentScope1', Number(e.target.value))}
                         placeholder="Direct"
@@ -700,7 +700,7 @@ export default function AssessPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">Scope 2</label>
                       <input
                         type="number"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-veridian-500 focus:border-veridian-500 transition-colors"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
                         value={formData.currentScope2 || ''}
                         onChange={(e) => updateField('currentScope2', Number(e.target.value))}
                         placeholder="Electricity"
@@ -710,7 +710,7 @@ export default function AssessPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">Scope 3</label>
                       <input
                         type="number"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-veridian-500 focus:border-veridian-500 transition-colors"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
                         value={formData.currentScope3 || ''}
                         onChange={(e) => updateField('currentScope3', Number(e.target.value))}
                         placeholder="Value chain"
@@ -726,7 +726,7 @@ export default function AssessPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">Scope 1 Target</label>
                       <input
                         type="number"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-veridian-500 focus:border-veridian-500 transition-colors"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
                         value={formData.targetScope1 || ''}
                         onChange={(e) => updateField('targetScope1', Number(e.target.value))}
                       />
@@ -735,7 +735,7 @@ export default function AssessPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">Scope 2 Target</label>
                       <input
                         type="number"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-veridian-500 focus:border-veridian-500 transition-colors"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
                         value={formData.targetScope2 || ''}
                         onChange={(e) => updateField('targetScope2', Number(e.target.value))}
                       />
@@ -744,7 +744,7 @@ export default function AssessPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">Scope 3 Target</label>
                       <input
                         type="number"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-veridian-500 focus:border-veridian-500 transition-colors"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
                         value={formData.targetScope3 || ''}
                         onChange={(e) => updateField('targetScope3', Number(e.target.value))}
                       />
@@ -755,7 +755,7 @@ export default function AssessPage() {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Target Year</label>
                   <select
-                    className="w-48 px-4 py-3 border border-gray-300 rounded-xl text-gray-900 bg-white focus:ring-2 focus:ring-veridian-500 focus:border-veridian-500 transition-colors"
+                    className="w-48 px-4 py-3 border border-gray-300 rounded-xl text-gray-900 bg-white focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
                     value={formData.targetYear}
                     onChange={(e) => updateField('targetYear', Number(e.target.value))}
                   >
@@ -766,8 +766,8 @@ export default function AssessPage() {
                 </div>
 
                 {formData.currentScope1 > 0 && formData.targetScope1 > 0 && (
-                  <div className="bg-veridian-50 p-4 rounded-xl">
-                    <p className="text-sm font-medium text-veridian-800">
+                  <div className="bg-verdex-50 p-4 rounded-xl">
+                    <p className="text-sm font-medium text-verdex-800">
                       Projected Reduction: {(((formData.currentScope1 + formData.currentScope2) - (formData.targetScope1 + formData.targetScope2)) / (formData.currentScope1 + formData.currentScope2) * 100).toFixed(1)}%
                     </p>
                   </div>
@@ -783,7 +783,7 @@ export default function AssessPage() {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Transition Strategy Description *</label>
                   <textarea
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-veridian-500 focus:border-veridian-500 transition-colors min-h-[150px]"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors min-h-[150px]"
                     value={formData.transitionStrategy}
                     onChange={(e) => updateField('transitionStrategy', e.target.value)}
                     placeholder="Describe your decarbonization pathway, key milestones, technologies to be deployed, and alignment with science-based targets..."
@@ -794,7 +794,7 @@ export default function AssessPage() {
                   <label className="flex items-center space-x-3 cursor-pointer">
                     <input
                       type="checkbox"
-                      className="w-5 h-5 text-veridian-600 rounded border-gray-300 focus:ring-veridian-500"
+                      className="w-5 h-5 text-verdex-600 rounded border-gray-300 focus:ring-verdex-500"
                       checked={formData.hasPublishedPlan}
                       onChange={(e) => updateField('hasPublishedPlan', e.target.checked)}
                     />
@@ -806,7 +806,7 @@ export default function AssessPage() {
                   <label className="flex items-center space-x-3 cursor-pointer">
                     <input
                       type="checkbox"
-                      className="w-5 h-5 text-veridian-600 rounded border-gray-300 focus:ring-veridian-500"
+                      className="w-5 h-5 text-verdex-600 rounded border-gray-300 focus:ring-verdex-500"
                       checked={formData.thirdPartyVerification}
                       onChange={(e) => updateField('thirdPartyVerification', e.target.checked)}
                     />
@@ -842,7 +842,7 @@ export default function AssessPage() {
               {step < 4 ? (
                 <button
                   onClick={() => setStep(step + 1)}
-                  className="bg-veridian-700 hover:bg-veridian-800 text-white font-semibold px-8 py-3 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105"
+                  className="bg-verdex-700 hover:bg-verdex-800 text-white font-semibold px-8 py-3 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105"
                 >
                   Next
                 </button>
@@ -850,7 +850,7 @@ export default function AssessPage() {
                 <button
                   onClick={handleFormSubmit}
                   disabled={loading}
-                  className="bg-veridian-700 hover:bg-veridian-800 text-white font-semibold px-8 py-3 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105 min-w-[180px] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  className="bg-verdex-700 hover:bg-verdex-800 text-white font-semibold px-8 py-3 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105 min-w-[180px] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
                   {loading ? (
                     <span className="flex items-center justify-center">

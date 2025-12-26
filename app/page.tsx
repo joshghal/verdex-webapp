@@ -10,6 +10,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 export default function Home() {
   const ctaRef = useRef<HTMLDivElement>(null);
+  const heroIllustrationRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Hero animation - immediate on load
@@ -35,37 +36,112 @@ export default function Home() {
       '-=0.2'
     );
 
-    // Trust indicators - scroll triggered
-    gsap.fromTo('.trust-indicator',
-      { opacity: 0, y: 20 },
-      {
-        opacity: 1,
-        y: 0,
-        duration: 0.5,
-        stagger: 0.1,
-        scrollTrigger: {
-          trigger: '.trust-section',
-          start: 'top 85%',
-          toggleActions: 'play none none none'
-        }
-      }
+    // Hero illustration animation - zoom out with opacity
+    const illustrationTl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+
+    illustrationTl.fromTo('.hero-card-main',
+      { opacity: 0, scale: 1.3 },
+      { opacity: 1, scale: 1, duration: 0.8 },
+      0.3
+    )
+    .fromTo('.hero-floating-lma',
+      { opacity: 0, x: -50, scale: 1.3 },
+      { opacity: 1, x: 0, scale: 1, duration: 0.6 },
+      0.6
+    )
+    .fromTo('.hero-floating-ai',
+      { opacity: 0, x: 50, scale: 1.3 },
+      { opacity: 1, x: 0, scale: 1, duration: 0.6 },
+      0.7
     );
 
-    // Features/How it works - scroll triggered with stagger
-    gsap.fromTo('.feature-card',
-      { opacity: 0, y: 40 },
-      {
-        opacity: 1,
-        y: 0,
-        duration: 0.6,
-        stagger: 0.2,
-        scrollTrigger: {
-          trigger: '.features-section',
-          start: 'top 75%',
-          toggleActions: 'play none none none'
+    // Parallax mouse following for hero illustration
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!heroIllustrationRef.current) return;
+
+      const rect = heroIllustrationRef.current.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      const moveX = (e.clientX - centerX) / 30;
+      const moveY = (e.clientY - centerY) / 30;
+
+      gsap.to('.hero-card-main', {
+        x: moveX * 0.5,
+        y: moveY * 0.5,
+        duration: 0.5,
+        ease: 'power2.out'
+      });
+
+      gsap.to('.hero-floating-lma', {
+        x: moveX * 1.2,
+        y: moveY * 1.2,
+        duration: 0.5,
+        ease: 'power2.out'
+      });
+
+      gsap.to('.hero-floating-ai', {
+        x: moveX * 1.5,
+        y: moveY * 1.5,
+        duration: 0.5,
+        ease: 'power2.out'
+      });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+
+    // Trust indicators - scroll triggered (removed - section deleted)
+
+    // How it works steps - each step triggers individually when visible
+    gsap.utils.toArray('.step-card').forEach((card) => {
+      const stepCard = card as HTMLElement;
+      const stepNode = stepCard.querySelector('.step-node');
+
+      // Animate the card dropping from top
+      gsap.fromTo(stepCard,
+        {
+          opacity: 0,
+          y: -60,
+          scale: 0.95
+        },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.7,
+          ease: 'back.out(1.2)',
+          scrollTrigger: {
+            trigger: stepCard,
+            start: 'top 85%',
+            toggleActions: 'play none none none'
+          }
         }
+      );
+
+      // Animate the number node popping in
+      if (stepNode) {
+        gsap.fromTo(stepNode,
+          {
+            opacity: 0,
+            scale: 0,
+            rotation: -180
+          },
+          {
+            opacity: 1,
+            scale: 1,
+            rotation: 0,
+            duration: 0.5,
+            ease: 'back.out(2)',
+            scrollTrigger: {
+              trigger: stepCard,
+              start: 'top 85%',
+              toggleActions: 'play none none none'
+            },
+            delay: 0.3
+          }
+        );
       }
-    );
+    });
 
     // Section headers - scroll triggered
     gsap.utils.toArray('.section-header').forEach((header) => {
@@ -119,6 +195,7 @@ export default function Home() {
     // Cleanup
     return () => {
       ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+      window.removeEventListener('mousemove', handleMouseMove);
     };
   }, []);
 
@@ -127,7 +204,7 @@ export default function Home() {
       {/* Hero Section */}
       <section className="relative overflow-hidden min-h-screen flex items-center">
         {/* Animated Blob Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-veridian-50/30 to-white" />
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-verdex-50/30 to-white" />
 
         {/* Topographic Contour Lines - Top Left */}
         <div className="absolute top-0 left-0 w-[520px] h-[520px] -translate-x-[10%] -translate-y-[10%] opacity-0 md:opacity-[0.08] pointer-events-none">
@@ -193,108 +270,294 @@ export default function Home() {
           <div className="blob blob-teal w-[500px] h-[400px] top-[80%] right-[60px] animate-blob-reverse opacity-30 md:opacity-50" />
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
-          <div className="text-center">
-            {/* Trust Badge - Glass */}
-            <div className="hero-badge inline-flex items-center gap-2 glass-card rounded-full px-5 py-2.5 mb-8">
-              <svg className="w-5 h-5 text-veridian-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-sm font-medium text-veridian-800">LMA Compliant Assessment Platform</span>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 md:pt-32 pb-16 md:pb-24">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            {/* Left Column - Content */}
+            <div className="order-1 lg:order-1">
+              <div className="hero-badge text-verdex-600 font-mono text-sm tracking-wider mb-4">
+                FOR AFRICAN TRANSITION PROJECTS
+              </div>
+
+              <h1 className="hero-title text-4xl md:text-5xl lg:text-6xl font-display font-medium text-gray-900 mb-6 tracking-tight leading-[1.1]">
+                <span className="block">Assess.</span>
+                <span className="block">Verify.</span>
+                <span className="block gradient-text">Get Funded.</span>
+              </h1>
+
+              <p className="hero-subtitle text-lg md:text-xl text-gray-600 mb-8 leading-relaxed max-w-xl">
+                AI-powered LMA compliance assessment, greenwashing detection, and DFI matching.
+              </p>
+
+              <div className="hero-buttons flex flex-col sm:flex-row gap-4 mb-12">
+                <Link href="/assess" className="bg-verdex-700 hover:bg-verdex-800 text-white font-semibold px-8 py-4 rounded-xl shadow-verdex hover:shadow-verdex-lg transition-all duration-300 hover:scale-105 text-center">
+                  Start Assessment
+                </Link>
+                <Link href="/search" className="border-2 border-gray-300 hover:border-verdex-600 text-gray-700 hover:text-verdex-700 font-semibold px-8 py-4 rounded-xl transition-all duration-300 text-center">
+                  Browse Clauses
+                </Link>
+              </div>
+
+              {/* Quick Stats */}
+              <div className="hero-buttons flex flex-wrap gap-x-8 gap-y-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-verdex-500 rounded-full"></div>
+                  <span className="text-gray-600">LMA Transition Loan Principles</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-verdex-500 rounded-full"></div>
+                  <span className="text-gray-600">SBTi Net-Zero Standard</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-verdex-500 rounded-full"></div>
+                  <span className="text-gray-600">Paris Agreement Aligned</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-verdex-500 rounded-full"></div>
+                  <span className="text-gray-600">7+ DFI Partners</span>
+                </div>
+              </div>
             </div>
 
-            <h1 className="hero-title text-4xl md:text-6xl font-display font-medium text-gray-900 mb-6 tracking-tight">
-              Verify Green Projects.{' '}
-              <span className="gradient-text">Get Funded.</span>
-            </h1>
-            <p className="hero-subtitle text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
-              AI-powered <span className="font-semibold text-veridian-700">LMA compliance</span> assessment,
-              greenwashing detection, and <span className="font-semibold text-veridian-700">DFI matching</span>.
-            </p>
-            <div className="hero-buttons flex flex-col sm:flex-row justify-center gap-4">
-              <Link href="/assess" className="bg-veridian-700 hover:bg-veridian-800 text-white font-semibold text-lg px-8 py-4 rounded-xl shadow-veridian hover:shadow-veridian-lg transition-all duration-300 hover:scale-105">
-                Assess Your Project
-              </Link>
-              <Link href="/search" className="glass-card text-veridian-700 font-semibold text-lg px-8 py-4 rounded-xl hover:bg-white/90 transition-all duration-300">
-                Search LMA Clauses
-              </Link>
+            {/* Right Column - Visual Element */}
+            <div className="order-2 lg:order-2" ref={heroIllustrationRef}>
+              <div className="relative">
+                {/* Assessment Preview Card Stack */}
+                <div className="relative z-10 hero-card-main">
+                  {/* Main Card */}
+                  <div className="glass-card rounded-2xl p-6 shadow-xl">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Assessment Result</span>
+                      <span className="bg-verdex-100 text-verdex-800 text-xs font-bold px-3 py-1 rounded-full">Eligible</span>
+                    </div>
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-500">Project</p>
+                      <p className="font-semibold text-gray-900">Lagos Solar Farm Initiative</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <p className="text-sm text-gray-500">LMA Score</p>
+                        <p className="text-2xl font-bold text-verdex-700">87/100</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Greenwash Risk</p>
+                        <p className="text-2xl font-bold text-emerald-600">Low</p>
+                      </div>
+                    </div>
+                    <div className="border-t border-gray-100 pt-4">
+                      <p className="text-sm text-gray-500 mb-2">Matched DFIs</p>
+                      <div className="flex gap-2">
+                        <span className="bg-navy-100 text-navy-800 text-xs font-medium px-2 py-1 rounded">AfDB</span>
+                        <span className="bg-navy-100 text-navy-800 text-xs font-medium px-2 py-1 rounded">IFC</span>
+                        <span className="bg-navy-100 text-navy-800 text-xs font-medium px-2 py-1 rounded">DEG</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Background Cards */}
+                  <div className="absolute -bottom-3 -right-3 left-3 h-full glass-card rounded-2xl -z-10 opacity-60"></div>
+                  <div className="absolute -bottom-6 -right-6 left-6 h-full glass-card rounded-2xl -z-20 opacity-30"></div>
+                </div>
+
+                {/* Floating Elements */}
+                <div className="absolute -top-4 -left-4 bg-white rounded-xl shadow-lg p-3 z-20 hero-floating-lma">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-verdex-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm font-medium">LMA Verified</span>
+                  </div>
+                </div>
+
+                <div className="absolute -bottom-2 -right-4 bg-white rounded-xl shadow-lg p-3 z-20 hero-floating-ai">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <span className="text-sm font-medium">AI-Powered</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Trust Indicators */}
-      <section className="trust-section glass py-8 relative z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 text-center">
-            <div className="trust-indicator">
-              <p className="text-3xl font-bold text-veridian-700">LMA</p>
-              <p className="text-sm text-gray-500">Transition Loan Principles</p>
-            </div>
-            <div className="w-px h-12 bg-gray-200 hidden md:block" />
-            <div className="trust-indicator">
-              <p className="text-3xl font-bold text-veridian-700">7+</p>
-              <p className="text-sm text-gray-500">DFI Partners</p>
-            </div>
-            <div className="w-px h-12 bg-gray-200 hidden md:block" />
-            <div className="trust-indicator">
-              <p className="text-3xl font-bold text-veridian-700">SBTi</p>
-              <p className="text-sm text-gray-500">Aligned Targets</p>
-            </div>
-            <div className="w-px h-12 bg-gray-200 hidden md:block" />
-            <div className="trust-indicator">
-              <p className="text-3xl font-bold text-veridian-700">7</p>
-              <p className="text-sm text-gray-500">African Markets</p>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* How It Works */}
-      <section className="features-section py-20 bg-gradient-to-b from-white via-veridian-50/20 to-white relative overflow-hidden">
+      <section className="features-section py-20 md:py-28 bg-gradient-to-b from-white via-verdex-50/20 to-white relative overflow-hidden">
         {/* Subtle blobs */}
         <div className="blob blob-emerald w-[300px] h-[300px] top-[10%] left-[-100px] opacity-50 animate-blob-slow" />
         <div className="blob blob-teal w-[250px] h-[250px] bottom-[10%] right-[-80px] opacity-40 animate-blob-reverse" />
+
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="section-header text-3xl font-display font-medium text-gray-900 mb-4">
+          <div className="text-center mb-16 md:mb-20">
+            <div className="section-header inline-flex items-center gap-2 bg-verdex-50 text-verdex-700 text-sm font-medium px-4 py-2 rounded-full mb-4">
+              <span className="w-2 h-2 bg-verdex-500 rounded-full animate-pulse"></span>
+              Simple Process
+            </div>
+            <h2 className="section-header text-3xl md:text-4xl font-display font-medium text-gray-900 mb-4">
               How It Works
             </h2>
-            <p className="section-header text-gray-600 max-w-2xl mx-auto">
-              Three simple steps to assess your project's transition finance eligibility
+            <p className="section-header text-gray-600 max-w-2xl mx-auto text-lg">
+              Three steps from project submission to investor-ready assessment
             </p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            <FeatureCard
-              number="01"
-              title="Upload or Input"
-              description="Upload your project documentation or fill in the assessment form with project details, financials, and transition strategy."
-              icon={
-                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H15m0-3l-3-3m0 0l-3 3m3-3V15" />
-                </svg>
-              }
-            />
-            <FeatureCard
-              number="02"
-              title="AI Assessment"
-              description="Our AI analyzes your project against LMA Transition Loan Principles, checks for greenwashing risks, and generates KPIs."
-              icon={
-                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
-                </svg>
-              }
-            />
-            <FeatureCard
-              number="03"
-              title="Get Matched"
-              description="Receive DFI recommendations, financing structure suggestions, and actionable steps to make your project bankable."
-              icon={
-                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
-                </svg>
-              }
-            />
+
+          {/* Timeline Container */}
+          <div className="relative">
+            {/* Connecting Path - Desktop */}
+            <div className="hidden lg:block absolute left-1/2 top-0 bottom-0 -translate-x-1/2 w-px">
+              <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="pathGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity="0.2" />
+                    <stop offset="50%" stopColor="#047857" stopOpacity="0.6" />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity="0.2" />
+                  </linearGradient>
+                </defs>
+                <line x1="50%" y1="0" x2="50%" y2="100%" stroke="url(#pathGradient)" strokeWidth="2" strokeDasharray="8 4" />
+              </svg>
+            </div>
+
+            {/* Steps */}
+            <div className="space-y-12 lg:space-y-0">
+
+              {/* Step 1 - Neutral Input */}
+              <div className="step-card relative lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center lg:pb-20">
+                {/* Number Node - Desktop */}
+                <div className="step-node hidden lg:flex absolute left-1/2 top-8 -translate-x-1/2 z-10">
+                  <div className="w-14 h-14 bg-gradient-to-br from-slate-500 to-slate-700 rounded-2xl flex items-center justify-center shadow-lg text-white font-display font-bold text-xl rotate-3 hover:rotate-0 transition-transform">
+                    01
+                  </div>
+                </div>
+                {/* Content - Left */}
+                <div className="lg:text-right lg:pr-16">
+                  <div className="flex items-center gap-3 mb-4 lg:justify-end">
+                    <span className="lg:hidden flex items-center justify-center w-10 h-10 bg-gradient-to-br from-slate-500 to-slate-700 rounded-xl text-white font-bold text-sm">01</span>
+                    <span className="text-slate-600 font-mono text-sm tracking-wider uppercase">Input</span>
+                  </div>
+                  <h3 className="text-2xl font-display font-semibold text-gray-900 mb-3">Upload or Fill the Form</h3>
+                  <p className="text-gray-600 leading-relaxed">
+                    Share your project documentation or complete our assessment form with project details, financials, and transition strategy.
+                  </p>
+                </div>
+                {/* Visual - Right */}
+                <div className="mt-6 lg:mt-0 lg:pl-16">
+                  <div className="glass-card rounded-2xl p-6 border-l-4 border-l-slate-400 group hover:shadow-lg transition-shadow">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                        <svg className="w-6 h-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H15m0-3l-3-3m0 0l-3 3m3-3V15" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="h-2 bg-slate-200 rounded-full w-24"></div>
+                          <div className="h-2 bg-slate-100 rounded-full w-16"></div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="h-2 bg-gray-100 rounded-full w-full"></div>
+                          <div className="h-2 bg-gray-100 rounded-full w-3/4"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 2 - KPI Colors (Verdex) */}
+              <div className="step-card relative lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center lg:pb-20">
+                {/* Number Node - Desktop */}
+                <div className="step-node hidden lg:flex absolute left-1/2 top-8 -translate-x-1/2 z-10">
+                  <div className="w-14 h-14 bg-gradient-to-br from-verdex-500 to-verdex-700 rounded-2xl flex items-center justify-center shadow-verdex text-white font-display font-bold text-xl -rotate-3 hover:rotate-0 transition-transform">
+                    02
+                  </div>
+                </div>
+                {/* Visual - Left (reversed order on desktop) */}
+                <div className="order-2 lg:order-1 mt-6 lg:mt-0 lg:pr-16">
+                  <div className="glass-card rounded-2xl p-6 border-l-4 border-l-verdex-500 group hover:shadow-verdex transition-shadow">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-verdex-100 to-verdex-200 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                        <svg className="w-6 h-6 text-verdex-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-xs text-gray-500">Generating KPIs...</span>
+                          <span className="text-xs font-medium text-verdex-600">87%</span>
+                        </div>
+                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-verdex-400 to-verdex-600 rounded-full w-[87%]"></div>
+                        </div>
+                        <div className="flex gap-2 mt-3">
+                          <span className="text-xs bg-verdex-100 text-verdex-700 px-2 py-1 rounded font-medium">KPI</span>
+                          <span className="text-xs bg-teal-100 text-teal-700 px-2 py-1 rounded font-medium">SPT</span>
+                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">LMA</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {/* Content - Right */}
+                <div className="order-1 lg:order-2 lg:text-left lg:pl-16">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="lg:hidden flex items-center justify-center w-10 h-10 bg-gradient-to-br from-verdex-500 to-verdex-700 rounded-xl text-white font-bold text-sm">02</span>
+                    <span className="text-verdex-600 font-mono text-sm tracking-wider uppercase">KPI & SPT Generation</span>
+                  </div>
+                  <h3 className="text-2xl font-display font-semibold text-gray-900 mb-3">AI-Powered Analysis</h3>
+                  <p className="text-gray-600 leading-relaxed">
+                    Our AI evaluates against LMA Transition Loan Principles, detects greenwashing risks, and generates science-based KPIs and SPTs.
+                  </p>
+                </div>
+              </div>
+
+              {/* Step 3 - SPT Colors (Teal) */}
+              <div className="step-card relative lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+                {/* Number Node - Desktop */}
+                <div className="step-node hidden lg:flex absolute left-1/2 top-8 -translate-x-1/2 z-10">
+                  <div className="w-14 h-14 bg-gradient-to-br from-teal-500 to-teal-700 rounded-2xl flex items-center justify-center shadow-lg text-white font-display font-bold text-xl rotate-3 hover:rotate-0 transition-transform">
+                    03
+                  </div>
+                </div>
+                {/* Content - Left */}
+                <div className="lg:text-right lg:pr-16">
+                  <div className="flex items-center gap-3 mb-4 lg:justify-end">
+                    <span className="lg:hidden flex items-center justify-center w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-700 rounded-xl text-white font-bold text-sm">03</span>
+                    <span className="text-teal-600 font-mono text-sm tracking-wider uppercase">Relevant clause matching</span>
+                  </div>
+                  <h3 className="text-2xl font-display font-semibold text-gray-900 mb-3">Get DFI Matched</h3>
+                  <p className="text-gray-600 leading-relaxed">
+                    Receive tailored DFI recommendations, financing structure suggestions, and actionable steps to make your project bankable.
+                  </p>
+                </div>
+                {/* Visual - Right */}
+                <div className="mt-6 lg:mt-0 lg:pl-16">
+                  <div className="glass-card rounded-2xl p-6 border-l-4 border-l-teal-500 group hover:shadow-lg transition-shadow">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-teal-100 to-teal-200 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                        <svg className="w-6 h-6 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs font-semibold text-teal-700 bg-teal-100 px-2 py-0.5 rounded">SPT Verified</span>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">Matched DFIs:</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          <span className="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded font-medium">AfDB</span>
+                          <span className="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded font-medium">IFC</span>
+                          <span className="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded font-medium">DEG</span>
+                          <span className="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded font-medium">FMO</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </div>
         </div>
       </section>
@@ -306,10 +569,10 @@ export default function Home() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="section-header text-3xl font-display font-medium text-gray-900 mb-4">
-              Platform Capabilities
+              Verdex Capabilities
             </h2>
             <p className="section-header text-gray-600 max-w-2xl mx-auto">
-              Comprehensive tools for transition finance assessment and compliance
+              AI-powered assessment, LMA compliance verification, and DFI matching for African green projects
             </p>
           </div>
 
@@ -317,18 +580,18 @@ export default function Home() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 lg:auto-rows-[140px]">
 
             {/* Level 1: Most Crucial - LMA Compliance (spans 2 cols, 2 rows on lg) */}
-            <div className="capability-card sm:col-span-2 lg:row-span-2 glass-card rounded-3xl p-6 md:p-8 flex flex-col justify-between group transition-all duration-300 border-l-4 border-l-veridian-500 overflow-hidden relative min-h-[200px] lg:min-h-0 glass-card-hover">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-veridian-500/10 rounded-full blur-2xl group-hover:bg-veridian-500/20 transition-colors" />
+            <div className="capability-card sm:col-span-2 lg:row-span-2 glass-card rounded-3xl p-6 md:p-8 flex flex-col justify-between group transition-all duration-300 border-l-4 border-l-verdex-500 overflow-hidden relative min-h-[200px] lg:min-h-0 glass-card-hover">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-verdex-500/10 rounded-full blur-2xl group-hover:bg-verdex-500/20 transition-colors" />
               <div className="relative">
-                <div className="w-14 h-14 bg-gradient-to-br from-veridian-100 to-veridian-200 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-veridian-500/10">
-                  <svg className="w-7 h-7 text-veridian-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="w-14 h-14 bg-gradient-to-br from-verdex-100 to-verdex-200 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-verdex-500/10">
+                  <svg className="w-7 h-7 text-verdex-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <h3 className="text-2xl font-semibold text-gray-900 mb-2">LMA Compliance Scoring</h3>
                 <p className="text-gray-600">Automated assessment against all 5 LMA Transition Loan Principles components with detailed feedback and actionable recommendations.</p>
               </div>
-              <div className="flex items-center gap-2 text-veridian-600 font-medium text-sm mt-4">
+              <div className="flex items-center gap-2 text-verdex-600 font-medium text-sm mt-4">
                 <span>Core Feature</span>
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -410,7 +673,7 @@ export default function Home() {
       {/* Supported Countries */}
       <section className="py-20 relative overflow-hidden">
         {/* Blob background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-veridian-50/50 via-white to-teal-50/30" />
+        <div className="absolute inset-0 bg-gradient-to-br from-verdex-50/50 via-white to-teal-50/30" />
         <div className="blob blob-green w-[400px] h-[400px] top-[-150px] right-[-100px] opacity-40 animate-blob" />
         <div className="blob blob-emerald w-[300px] h-[300px] bottom-[-100px] left-[-50px] opacity-30 animate-blob-reverse" />
 
@@ -424,33 +687,80 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Country Cards Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4 md:gap-6">
-            {[
-              { name: 'Kenya', flag: '🇰🇪', code: 'KE' },
-              { name: 'Nigeria', flag: '🇳🇬', code: 'NG' },
-              { name: 'South Africa', flag: '🇿🇦', code: 'ZA' },
-              { name: 'Tanzania', flag: '🇹🇿', code: 'TZ' },
-              { name: 'Ghana', flag: '🇬🇭', code: 'GH' },
-              { name: 'Egypt', flag: '🇪🇬', code: 'EG' },
-              { name: 'Morocco', flag: '🇲🇦', code: 'MA' },
-            ].map((country) => (
-              <div
-                key={country.code}
-                className="country-tag glass-card rounded-2xl p-4 md:p-5 text-center hover:bg-white/80 hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-default group"
-              >
-                <div className="text-4xl md:text-5xl mb-2 group-hover:scale-110 transition-transform">{country.flag}</div>
-                <p className="text-veridian-800 font-semibold text-sm md:text-base">{country.name}</p>
-                <p className="text-veridian-600/60 text-xs mt-1 hidden md:block">NDC Aligned</p>
-              </div>
-            ))}
-          </div>
+          {/* Map-Anchored Layout */}
+          <div className="relative max-w-4xl mx-auto">
+            {/* Geographic Grid Layout */}
+            <div className="relative grid grid-cols-5 grid-rows-[auto_1fr_1fr_auto] gap-3 md:gap-4 min-h-[500px] md:min-h-[600px]">
 
-          {/* Additional info */}
-          <div className="mt-10 text-center">
-            <p className="text-gray-500 text-sm">
-              More markets coming soon: <span className="text-veridian-600">Ethiopia, Rwanda, Senegal, Côte d&apos;Ivoire</span>
-            </p>
+              {/* North Africa Row */}
+              <div className="col-start-1 col-span-2 row-start-1 flex justify-center z-10">
+                <div className="country-tag glass-card rounded-2xl p-4 md:p-5 text-center hover:bg-white/80 hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-default group w-full max-w-[140px]">
+                  <div className="text-3xl md:text-4xl mb-1 group-hover:scale-110 transition-transform">🇲🇦</div>
+                  <p className="text-verdex-800 font-semibold text-sm">Morocco</p>
+                  <p className="text-verdex-600/60 text-[10px] mt-0.5">North Africa</p>
+                </div>
+              </div>
+              <div className="col-start-4 col-span-2 row-start-1 flex justify-center z-10">
+                <div className="country-tag glass-card rounded-2xl p-4 md:p-5 text-center hover:bg-white/80 hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-default group w-full max-w-[140px]">
+                  <div className="text-3xl md:text-4xl mb-1 group-hover:scale-110 transition-transform">🇪🇬</div>
+                  <p className="text-verdex-800 font-semibold text-sm">Egypt</p>
+                  <p className="text-verdex-600/60 text-[10px] mt-0.5">North Africa</p>
+                </div>
+              </div>
+
+              {/* West Africa - Left Side */}
+              <div className="col-start-1 row-start-2 row-span-2 flex flex-col justify-center gap-3 z-10">
+                <div className="country-tag glass-card rounded-2xl p-4 md:p-5 text-center hover:bg-white/80 hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-default group">
+                  <div className="text-3xl md:text-4xl mb-1 group-hover:scale-110 transition-transform">🇳🇬</div>
+                  <p className="text-verdex-800 font-semibold text-sm">Nigeria</p>
+                  <p className="text-verdex-600/60 text-[10px] mt-0.5">West Africa</p>
+                </div>
+                <div className="country-tag glass-card rounded-2xl p-4 md:p-5 text-center hover:bg-white/80 hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-default group">
+                  <div className="text-3xl md:text-4xl mb-1 group-hover:scale-110 transition-transform">🇬🇭</div>
+                  <p className="text-verdex-800 font-semibold text-sm">Ghana</p>
+                  <p className="text-verdex-600/60 text-[10px] mt-0.5">West Africa</p>
+                </div>
+              </div>
+
+              {/* Africa Map - Center */}
+              <div className="col-start-2 col-span-3 row-start-2 row-span-2 flex items-center justify-center absolute inset-0 z-0">
+                <img
+                  src="/img/img-affrica-map.svg"
+                  alt="Africa continent"
+                  className="w-[400px] md:w-[500px] lg:w-[550px] h-auto select-none pointer-events-none -translate-y-[60px] animate-pulse-green"
+                />
+              </div>
+
+              {/* East Africa - Right Side */}
+              <div className="col-start-5 row-start-2 row-span-2 flex flex-col justify-center gap-3 z-10">
+                <div className="country-tag glass-card rounded-2xl p-4 md:p-5 text-center hover:bg-white/80 hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-default group">
+                  <div className="text-3xl md:text-4xl mb-1 group-hover:scale-110 transition-transform">🇰🇪</div>
+                  <p className="text-verdex-800 font-semibold text-sm">Kenya</p>
+                  <p className="text-verdex-600/60 text-[10px] mt-0.5">East Africa</p>
+                </div>
+                <div className="country-tag glass-card rounded-2xl p-4 md:p-5 text-center hover:bg-white/80 hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-default group">
+                  <div className="text-3xl md:text-4xl mb-1 group-hover:scale-110 transition-transform">🇹🇿</div>
+                  <p className="text-verdex-800 font-semibold text-sm">Tanzania</p>
+                  <p className="text-verdex-600/60 text-[10px] mt-0.5">East Africa</p>
+                </div>
+              </div>
+
+              {/* Southern Africa - Bottom */}
+              <div className="col-start-2 col-span-3 row-start-4 flex justify-center z-10">
+                <div className="country-tag glass-card rounded-2xl px-8 py-5 text-center hover:bg-white/80 hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-default group">
+                  <div className="text-4xl md:text-5xl mb-1 group-hover:scale-110 transition-transform">🇿🇦</div>
+                  <p className="text-verdex-800 font-semibold text-base">South Africa</p>
+                  <p className="text-verdex-600/60 text-[10px] mt-0.5">Southern Africa</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Coming Soon - subtle annotation */}
+            <div className="mt-8 text-center">
+              <p className="text-gray-400 text-xs tracking-wide">
+                Coming soon: <span className="text-verdex-500">Ethiopia</span> · <span className="text-verdex-500">Rwanda</span> · <span className="text-verdex-500">Senegal</span> · <span className="text-verdex-500">Côte d&apos;Ivoire</span>
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -458,7 +768,7 @@ export default function Home() {
       {/* CTA Section */}
       <section ref={ctaRef} className="py-24 relative overflow-hidden">
         {/* Dark glass background with blobs */}
-        <div className="absolute inset-0 bg-gradient-to-br from-veridian-900 via-veridian-800 to-navy-900" />
+        <div className="absolute inset-0 bg-gradient-to-br from-verdex-900 via-verdex-800 to-navy-900" />
         <div className="absolute inset-0 overflow-hidden opacity-30">
           <div className="blob blob-teal w-[400px] h-[400px] top-[-100px] left-[-100px] animate-blob" />
           <div className="blob blob-emerald w-[350px] h-[350px] bottom-[-100px] right-[-100px] animate-blob-reverse" />
@@ -498,20 +808,20 @@ export default function Home() {
           <h2 className="text-3xl md:text-4xl font-display font-medium text-white mb-4">
             Ready to Make Your Project Bankable?
           </h2>
-          <p className="text-veridian-200 mb-10 text-lg max-w-2xl mx-auto">
+          <p className="text-verdex-200 mb-10 text-lg max-w-2xl mx-auto">
             Get a comprehensive LMA compliance assessment in seconds, not weeks.
             Join the verified green finance movement.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link
               href="/assess"
-              className="glass-button text-veridian-700 font-semibold px-8 py-4 rounded-xl hover:bg-white transition-all duration-300 shadow-lg hover:scale-105"
+              className="glass-button text-verdex-700 font-semibold px-8 py-4 rounded-xl hover:bg-white transition-all duration-300 shadow-lg hover:scale-105"
             >
               Start Free Assessment
             </Link>
             <Link
               href="/search"
-              className="glass-dark text-white font-semibold px-8 py-4 rounded-xl hover:bg-veridian-700/80 transition-all duration-300"
+              className="glass-dark text-white font-semibold px-8 py-4 rounded-xl hover:bg-verdex-700/80 transition-all duration-300"
             >
               Explore LMA Clauses
             </Link>
@@ -522,22 +832,4 @@ export default function Home() {
   );
 }
 
-function FeatureCard({ number, title, description, icon }: { number: string; title: string; description: string; icon: React.ReactNode }) {
-  return (
-    <div className="feature-card glass-card-hover rounded-2xl p-8 text-center relative overflow-hidden group">
-      {/* Background Number */}
-      <div className="absolute -top-4 -right-4 text-8xl font-bold text-veridian-500/10 group-hover:text-veridian-500/20 transition-colors pointer-events-none">
-        {number}
-      </div>
-
-      <div className="relative">
-        <div className="w-16 h-16 bg-gradient-to-br from-veridian-100 to-veridian-200/50 rounded-2xl flex items-center justify-center text-veridian-600 mx-auto mb-6 group-hover:from-veridian-200 group-hover:to-veridian-300/50 transition-all shadow-lg shadow-veridian-500/10">
-          {icon}
-        </div>
-        <h3 className="text-xl font-semibold text-gray-900 mb-3">{title}</h3>
-        <p className="text-gray-600">{description}</p>
-      </div>
-    </div>
-  );
-}
 

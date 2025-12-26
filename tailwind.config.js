@@ -7,8 +7,8 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Veridian Brand - Primary Green
-        veridian: {
+        // Verdex Brand - Primary Green
+        verdex: {
           50: '#ecfdf5',
           100: '#d1fae5',
           200: '#a7f3d0',
@@ -48,10 +48,10 @@ module.exports = {
         display: ['Geograph', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        'veridian': '0 4px 14px 0 rgba(4, 120, 87, 0.15)',
-        'veridian-lg': '0 10px 40px 0 rgba(4, 120, 87, 0.2)',
-        'veridian-sm': '0 2px 8px 0 rgba(4, 120, 87, 0.1)',
-        'veridian-xl': '0 20px 50px 0 rgba(4, 120, 87, 0.15)',
+        'verdex': '0 4px 14px 0 rgba(4, 120, 87, 0.15)',
+        'verdex-lg': '0 10px 40px 0 rgba(4, 120, 87, 0.2)',
+        'verdex-sm': '0 2px 8px 0 rgba(4, 120, 87, 0.1)',
+        'verdex-xl': '0 20px 50px 0 rgba(4, 120, 87, 0.15)',
         'gold': '0 4px 14px 0 rgba(212, 160, 18, 0.25)',
         'glass': '0 8px 32px rgba(5, 150, 105, 0.08)',
         'glass-hover': '0 16px 48px rgba(5, 150, 105, 0.12)',

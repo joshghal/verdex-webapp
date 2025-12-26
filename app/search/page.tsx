@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { formatClauseContent, getClausePreview } from '@/lib/clauseFormatter';
 
 interface SearchResult {
   id: string;
@@ -58,6 +60,7 @@ const CLAUSE_TYPE_LABELS: Record<string, string> = {
 };
 
 export default function SearchPage() {
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -68,6 +71,7 @@ export default function SearchPage() {
   const [selectedClauseType, setSelectedClauseType] = useState<string | null>(null);
   const [selectedDocType, setSelectedDocType] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [initialSearchDone, setInitialSearchDone] = useState(false);
 
   // Fetch index stats on mount
   useEffect(() => {
@@ -77,9 +81,19 @@ export default function SearchPage() {
       .catch(console.error);
   }, []);
 
-  const handleSearch = async (searchQuery?: string) => {
-    const q = searchQuery || query;
-    if (!q.trim()) return;
+  // Handle query parameter from URL (e.g., from results page)
+  useEffect(() => {
+    const urlQuery = searchParams.get('q');
+    if (urlQuery && !initialSearchDone) {
+      setQuery(urlQuery);
+      setInitialSearchDone(true);
+      // Execute search after setting query
+      performSearch(urlQuery);
+    }
+  }, [searchParams, initialSearchDone]);
+
+  const performSearch = async (searchQuery: string) => {
+    if (!searchQuery.trim()) return;
 
     setLoading(true);
     setSearched(true);
@@ -94,7 +108,7 @@ export default function SearchPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: q,
+          query: searchQuery,
           limit: 15,
           filters: Object.keys(filters).length > 0 ? filters : undefined,
         }),
@@ -109,6 +123,11 @@ export default function SearchPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = async (searchQuery?: string) => {
+    const q = searchQuery || query;
+    performSearch(q);
   };
 
   const handleQuickSearch = (q: string) => {
@@ -141,19 +160,19 @@ export default function SearchPage() {
       <div className="max-w-6xl mx-auto px-4 relative z-10">
         <div className="mb-8 text-center">
           <div className="inline-flex items-center gap-2 glass-card rounded-full px-4 py-2 mb-6">
-            <svg className="w-5 h-5 text-veridian-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5 text-verdex-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <span className="text-sm font-medium text-veridian-800">LMA Clause Database</span>
+            <span className="text-sm font-medium text-verdex-800">LMA Clause Database</span>
             {indexStats && indexStats.totalVectors > 0 && (
-              <span className="text-xs bg-veridian-100 text-veridian-700 px-2 py-0.5 rounded-full ml-2">
+              <span className="text-xs bg-verdex-100 text-verdex-700 px-2 py-0.5 rounded-full ml-2">
                 {indexStats.totalVectors} clauses indexed
               </span>
             )}
           </div>
           <h1 className="text-4xl md:text-5xl font-display font-medium text-gray-900 mb-4">Search LMA Clauses</h1>
           <p className="text-lg text-gray-600 max-w-xl mx-auto">
-            Semantic search through LMA documentation for transition loan clauses
+            Search LMA templates, Paris Agreement, and SBTi Net-Zero standards for transition finance
           </p>
         </div>
 
@@ -162,7 +181,7 @@ export default function SearchPage() {
           <div className="flex gap-4">
             <input
               type="text"
-              className="flex-1 px-5 py-4 bg-white/80 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-veridian-500 focus:border-veridian-500 transition-all"
+              className="flex-1 px-5 py-4 bg-white/80 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-all"
               placeholder="Search for clauses (e.g., 'margin ratchet', 'SOFR interest calculation')"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -171,7 +190,7 @@ export default function SearchPage() {
             <button
               onClick={() => handleSearch()}
               disabled={loading}
-              className="bg-veridian-700 hover:bg-veridian-800 text-white font-semibold px-8 py-4 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
+              className="bg-verdex-700 hover:bg-verdex-800 text-white font-semibold px-8 py-4 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               {loading ? 'Searching...' : 'Search'}
             </button>
@@ -187,8 +206,8 @@ export default function SearchPage() {
                   onClick={() => setSelectedClauseType(selectedClauseType === type ? null : type)}
                   className={`text-xs px-3 py-1.5 rounded-full transition-all ${
                     selectedClauseType === type
-                      ? 'bg-veridian-600 text-white'
-                      : 'bg-white/60 text-gray-600 hover:bg-veridian-50 hover:text-veridian-700 border border-gray-200'
+                      ? 'bg-verdex-600 text-white'
+                      : 'bg-white/60 text-gray-600 hover:bg-verdex-50 hover:text-verdex-700 border border-gray-200'
                   }`}
                 >
                   {CLAUSE_TYPE_LABELS[type] || type.replace(/_/g, ' ')}
@@ -211,7 +230,7 @@ export default function SearchPage() {
                 <button
                   key={q}
                   onClick={() => handleQuickSearch(q)}
-                  className="text-xs px-3 py-1.5 bg-white/60 hover:bg-white text-gray-600 rounded-full transition-all border border-gray-200 hover:border-veridian-300 hover:text-veridian-700"
+                  className="text-xs px-3 py-1.5 bg-white/60 hover:bg-white text-gray-600 rounded-full transition-all border border-gray-200 hover:border-verdex-300 hover:text-verdex-700"
                 >
                   {q}
                 </button>
@@ -232,7 +251,7 @@ export default function SearchPage() {
                 </span>
                 <span className={`text-xs px-2 py-1 rounded-full ${
                   searchSource === 'pinecone'
-                    ? 'bg-veridian-100 text-veridian-700'
+                    ? 'bg-verdex-100 text-verdex-700'
                     : 'bg-amber-100 text-amber-700'
                 }`}>
                   {searchSource === 'pinecone' ? 'Vector Search' : 'Sample Templates'}
@@ -242,7 +261,7 @@ export default function SearchPage() {
 
             {loading && (
               <div className="glass-card rounded-2xl text-center py-12">
-                <div className="animate-spin w-8 h-8 border-2 border-veridian-600 border-t-transparent rounded-full mx-auto mb-4" />
+                <div className="animate-spin w-8 h-8 border-2 border-verdex-600 border-t-transparent rounded-full mx-auto mb-4" />
                 <p className="text-gray-500">Searching {indexStats?.totalVectors || 0} clauses...</p>
               </div>
             )}
@@ -258,7 +277,7 @@ export default function SearchPage() {
                 key={result.id}
                 className={`glass-card rounded-2xl p-4 cursor-pointer transition-all duration-300 ${
                   selectedClause?.id === result.id
-                    ? 'ring-2 ring-veridian-500 border-veridian-500 bg-white/90'
+                    ? 'ring-2 ring-verdex-500 border-verdex-500 bg-white/90'
                     : 'hover:bg-white/90 hover:-translate-y-0.5 hover:shadow-lg'
                 }`}
                 onClick={() => setSelectedClause(result)}
@@ -267,7 +286,7 @@ export default function SearchPage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-medium text-gray-400">#{idx + 1}</span>
                     {result.metadata.clauseType && (
-                      <span className="text-xs bg-veridian-100 text-veridian-800 px-2 py-0.5 rounded-full">
+                      <span className="text-xs bg-verdex-100 text-verdex-800 px-2 py-0.5 rounded-full">
                         {CLAUSE_TYPE_LABELS[result.metadata.clauseType] || result.metadata.clauseType.replace(/_/g, ' ')}
                       </span>
                     )}
@@ -277,12 +296,12 @@ export default function SearchPage() {
                       </span>
                     )}
                   </div>
-                  <span className="text-xs text-veridian-600 font-semibold">
+                  <span className="text-xs text-verdex-600 font-semibold">
                     {(result.score * 100).toFixed(0)}%
                   </span>
                 </div>
                 <p className="text-gray-700 text-sm line-clamp-3">
-                  {result.content.substring(0, 180)}...
+                  {getClausePreview(result.content, 180)}
                 </p>
                 {result.metadata.source && (
                   <p className="text-xs text-gray-400 mt-2 truncate">
@@ -302,7 +321,7 @@ export default function SearchPage() {
                   <button
                     onClick={handleCopy}
                     className={`text-sm font-semibold transition-colors flex items-center gap-1 ${
-                      copied ? 'text-veridian-600' : 'text-gray-500 hover:text-veridian-700'
+                      copied ? 'text-verdex-600' : 'text-gray-500 hover:text-verdex-700'
                     }`}
                   >
                     {copied ? (
@@ -325,7 +344,7 @@ export default function SearchPage() {
 
                 <div className="flex flex-wrap gap-2 mb-4">
                   {selectedClause.metadata.clauseType && (
-                    <span className="text-xs bg-veridian-100 text-veridian-800 px-3 py-1.5 rounded-full font-medium">
+                    <span className="text-xs bg-verdex-100 text-verdex-800 px-3 py-1.5 rounded-full font-medium">
                       {CLAUSE_TYPE_LABELS[selectedClause.metadata.clauseType] || selectedClause.metadata.clauseType.replace(/_/g, ' ')}
                     </span>
                   )}
@@ -341,8 +360,8 @@ export default function SearchPage() {
                   )}
                 </div>
 
-                <div className="bg-white/80 p-4 rounded-xl text-sm text-gray-700 whitespace-pre-wrap font-mono overflow-auto max-h-[500px] border border-gray-100">
-                  {selectedClause.content}
+                <div className="bg-white/80 p-4 rounded-xl text-sm text-gray-700 whitespace-pre-wrap overflow-auto max-h-[500px] border border-gray-100 leading-relaxed">
+                  {formatClauseContent(selectedClause.content)}
                 </div>
 
                 {selectedClause.metadata.source && (
