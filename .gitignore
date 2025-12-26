@@ -40,3 +40,7 @@ Thumbs.db
 
 # Testing
 coverage/
+
+# Development scripts and samples
+scripts/
+public/samples/
