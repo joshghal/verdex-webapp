@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 const COUNTRIES = [
@@ -11,21 +11,49 @@ const COUNTRIES = [
   { value: 'ghana', label: 'Ghana' },
   { value: 'egypt', label: 'Egypt' },
   { value: 'morocco', label: 'Morocco' },
+  { value: 'ethiopia', label: 'Ethiopia' },
+  { value: 'senegal', label: 'Senegal' },
+  { value: 'cote_divoire', label: "Côte d'Ivoire" },
+  { value: 'zambia', label: 'Zambia' },
+  { value: 'rwanda', label: 'Rwanda' },
 ];
 
 const SECTORS = [
   { value: 'energy', label: 'Energy' },
+  { value: 'renewable_energy', label: 'Renewable Energy' },
   { value: 'mining', label: 'Mining' },
   { value: 'agriculture', label: 'Agriculture' },
   { value: 'transport', label: 'Transport' },
   { value: 'manufacturing', label: 'Manufacturing' },
+  { value: 'real_estate', label: 'Real Estate' },
+  { value: 'water', label: 'Water & Sanitation' },
 ];
+
+interface ExtractedFields {
+  projectName: string;
+  country: string;
+  sector: string;
+  description: string;
+  climateTargets: string;
+  financingNeeded: number | null;
+  transitionPlan: string;
+  baselineEmissions: string;
+  verificationStatus: string;
+}
 
 export default function AssessPage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // PDF upload state
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [extractedPreview, setExtractedPreview] = useState('');
+  const [dragOver, setDragOver] = useState(false);
 
   const [formData, setFormData] = useState({
     // Step 1: Basic Info
@@ -57,6 +85,102 @@ export default function AssessPage() {
 
   const updateField = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Handle PDF upload
+  const handlePDFUpload = async (file: File) => {
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      setUploadError('Please upload a PDF file');
+      return;
+    }
+
+    setUploadLoading(true);
+    setUploadError('');
+    setUploadSuccess(false);
+
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append('pdf', file);
+
+      const response = await fetch('/api/upload-pdf', {
+        method: 'POST',
+        body: formDataUpload,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Upload failed');
+      }
+
+      // Pre-fill form with extracted data
+      const fields: ExtractedFields = result.extractedFields;
+
+      setFormData(prev => ({
+        ...prev,
+        projectName: fields.projectName || prev.projectName,
+        country: matchCountry(fields.country) || prev.country,
+        sector: matchSector(fields.sector) || prev.sector,
+        description: fields.description || prev.description,
+        transitionStrategy: fields.transitionPlan || prev.transitionStrategy,
+        totalCost: fields.financingNeeded || prev.totalCost,
+        hasPublishedPlan: !!fields.transitionPlan,
+        thirdPartyVerification: !!fields.verificationStatus,
+      }));
+
+      setExtractedPreview(result.extractedText);
+      setUploadSuccess(true);
+
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Failed to process PDF');
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
+  // Match country string to dropdown value
+  const matchCountry = (countryStr: string): string | null => {
+    if (!countryStr) return null;
+    const lower = countryStr.toLowerCase();
+    const match = COUNTRIES.find(c =>
+      c.label.toLowerCase().includes(lower) ||
+      lower.includes(c.label.toLowerCase())
+    );
+    return match?.value || null;
+  };
+
+  // Match sector string to dropdown value
+  const matchSector = (sectorStr: string): string | null => {
+    if (!sectorStr) return null;
+    const lower = sectorStr.toLowerCase();
+    const match = SECTORS.find(s =>
+      s.label.toLowerCase().includes(lower) ||
+      lower.includes(s.label.toLowerCase())
+    );
+    return match?.value || null;
+  };
+
+  // Drag and drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handlePDFUpload(file);
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handlePDFUpload(file);
   };
 
   const handleSubmit = async () => {
@@ -117,8 +241,107 @@ export default function AssessPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Project Assessment</h1>
           <p className="text-gray-600">
-            Enter your project details to get a comprehensive LMA compliance assessment
+            Upload a PDF or enter your project details manually for LMA compliance assessment
           </p>
+        </div>
+
+        {/* PDF Upload Section */}
+        <div className="card mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Quick Start: Upload Project Document
+          </h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Upload a project proposal, transition plan, or sustainability report to auto-fill the form
+          </p>
+
+          <div
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+              dragOver
+                ? 'border-green-500 bg-green-50'
+                : uploadSuccess
+                  ? 'border-green-500 bg-green-50'
+                  : 'border-gray-300 hover:border-gray-400'
+            }`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            {uploadLoading ? (
+              <div className="space-y-3">
+                <div className="animate-spin w-10 h-10 border-3 border-green-600 border-t-transparent rounded-full mx-auto" />
+                <p className="text-gray-600">Extracting information from PDF...</p>
+                <p className="text-sm text-gray-500">This may take a few seconds</p>
+              </div>
+            ) : uploadSuccess ? (
+              <div className="space-y-3">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-green-700 font-medium">PDF processed successfully!</p>
+                <p className="text-sm text-gray-600">Form has been pre-filled with extracted data. Review and edit as needed.</p>
+                <button
+                  onClick={() => {
+                    setUploadSuccess(false);
+                    setExtractedPreview('');
+                  }}
+                  className="text-sm text-green-600 hover:text-green-700 underline"
+                >
+                  Upload another file
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+                  <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                </div>
+                <p className="text-gray-600">
+                  <span className="font-medium">Drop your PDF here</span> or{' '}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-green-600 hover:text-green-700 font-medium"
+                  >
+                    browse files
+                  </button>
+                </p>
+                <p className="text-sm text-gray-500">Supports: Project proposals, transition plans, ESG reports</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf"
+                  onChange={handleFileInput}
+                  className="hidden"
+                />
+              </div>
+            )}
+          </div>
+
+          {uploadError && (
+            <div className="mt-3 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+              {uploadError}
+            </div>
+          )}
+
+          {extractedPreview && (
+            <details className="mt-4">
+              <summary className="text-sm text-gray-600 cursor-pointer hover:text-gray-800">
+                View extracted text preview
+              </summary>
+              <pre className="mt-2 p-3 bg-gray-50 rounded text-xs text-gray-600 overflow-auto max-h-40">
+                {extractedPreview}
+              </pre>
+            </details>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div className="flex items-center gap-4 mb-6">
+          <div className="flex-1 border-t border-gray-200" />
+          <span className="text-sm text-gray-500">or fill manually</span>
+          <div className="flex-1 border-t border-gray-200" />
         </div>
 
         {/* Progress Steps */}
