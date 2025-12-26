@@ -413,9 +413,22 @@ function exportToPDF(result: AssessmentResult) {
   doc.save(fileName);
 }
 
+interface RelevantClause {
+  id: string;
+  score: number;
+  content: string;
+  metadata: {
+    clauseType?: string;
+    documentType?: string;
+    source?: string;
+  };
+}
+
 export default function ResultsPage() {
   const router = useRouter();
   const [result, setResult] = useState<AssessmentResult | null>(null);
+  const [relevantClauses, setRelevantClauses] = useState<RelevantClause[]>([]);
+  const [clausesLoading, setClausesLoading] = useState(false);
   const pageRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const statusRef = useRef<HTMLDivElement>(null);
@@ -428,6 +441,41 @@ export default function ResultsPage() {
       router.push('/assess');
     }
   }, [router]);
+
+  // Fetch relevant clauses based on project sector
+  useEffect(() => {
+    if (result) {
+      const fetchClauses = async () => {
+        setClausesLoading(true);
+        try {
+          // Build search query based on project characteristics
+          const searchTerms = [
+            result.sector,
+            'transition loan',
+            result.eligibilityStatus === 'eligible' ? 'margin ratchet' : 'conditions precedent',
+          ].join(' ');
+
+          const response = await fetch('/api/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: searchTerms,
+              limit: 5,
+            }),
+          });
+
+          const data = await response.json();
+          setRelevantClauses(data.results || []);
+        } catch (error) {
+          console.error('Failed to fetch relevant clauses:', error);
+        } finally {
+          setClausesLoading(false);
+        }
+      };
+
+      fetchClauses();
+    }
+  }, [result]);
 
   // GSAP animations with ScrollTrigger
   useEffect(() => {
@@ -876,6 +924,65 @@ export default function ResultsPage() {
                   </li>
                 ))}
               </ol>
+            </div>
+
+            {/* Relevant Clauses */}
+            <div className="glass-card rounded-3xl p-6 result-card">
+              <div className="flex justify-between items-center mb-3">
+                <h2 className="text-lg font-display font-medium">Relevant Clauses</h2>
+                <Link
+                  href="/search"
+                  className="text-xs text-veridian-600 hover:text-veridian-700 font-medium"
+                >
+                  View All →
+                </Link>
+              </div>
+
+              {clausesLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin w-5 h-5 border-2 border-veridian-600 border-t-transparent rounded-full" />
+                </div>
+              ) : relevantClauses.length > 0 ? (
+                <div className="space-y-3">
+                  {relevantClauses.slice(0, 4).map((clause, idx) => (
+                    <div
+                      key={clause.id}
+                      className="bg-white/60 border border-gray-200 rounded-xl p-3 hover:bg-white/80 transition-all cursor-pointer"
+                      onClick={() => {
+                        // Store clause for search page
+                        sessionStorage.setItem('selectedClause', JSON.stringify(clause));
+                        router.push('/search');
+                      }}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs text-gray-400">#{idx + 1}</span>
+                        {clause.metadata.clauseType && (
+                          <span className="text-xs bg-veridian-100 text-veridian-800 px-2 py-0.5 rounded-full">
+                            {clause.metadata.clauseType.replace(/_/g, ' ')}
+                          </span>
+                        )}
+                        <span className="text-xs text-veridian-600 font-medium ml-auto">
+                          {(clause.score * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600 line-clamp-2">
+                        {clause.content.substring(0, 120)}...
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-4">
+                  No relevant clauses found
+                </p>
+              )}
+
+              <Link
+                href="/search"
+                className="mt-4 block w-full text-center bg-veridian-50 hover:bg-veridian-100 text-veridian-700 font-medium text-sm py-2.5 rounded-xl transition-colors border border-veridian-200"
+              >
+                Search All LMA Clauses
+              </Link>
             </div>
 
             {/* Country Info */}
