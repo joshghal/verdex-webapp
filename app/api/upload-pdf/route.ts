@@ -47,13 +47,23 @@ async function extractProjectData(text: string): Promise<{
 2. country: The country where the project is located
 3. sector: The industry sector (Energy, Manufacturing, Agriculture, Transport, Mining, Real Estate, Water)
 4. projectType: Specific project type (e.g., "Solar PV", "Wind Farm", "Coffee Processing", "EV Fleet")
-5. description: A brief description of the project and its transition goals (2-3 sentences)
+5. description: Project description INCLUDING any mentions of SBTi, Science Based Targets, Paris Agreement, NDC, 1.5°C pathway
 6. climateTargets: Any climate or emissions reduction targets mentioned as text
 7. financingNeeded: Total financing/investment amount in USD (number only, convert from millions if needed)
 8. debtAmount: Debt/loan amount in USD (number only, or null if not mentioned)
 9. equityAmount: Equity amount in USD (number only, or null if not mentioned)
-10. transitionPlan: Summary of transition plan or strategy
+10. transitionPlan: Transition strategy INCLUDING any mentions of SBTi, science-based targets, Paris Agreement, NDC, 1.5°C
 11. baselineEmissions: Baseline emissions description as text
+
+**KEYWORD PRESERVATION RULES:**
+When extracting description and transitionPlan, check if the source document contains these keywords:
+- "SBTi", "Science Based Targets", "science-based targets"
+- "Paris Agreement", "Paris"
+- "NDC", "Nationally Determined Contributions"
+- "1.5°C", "1.5 degrees", "1.5C pathway"
+
+IF the document contains any of these keywords → copy them EXACTLY into description or transitionPlan
+IF the document does NOT contain these keywords → do NOT add them (no hallucination)
 12. currentScope1: Current Scope 1 emissions in tCO2e/year (number only, or null)
 13. currentScope2: Current Scope 2 emissions in tCO2e/year (number only, or null)
 14. currentScope3: Current Scope 3 emissions in tCO2e/year (number only, or null)

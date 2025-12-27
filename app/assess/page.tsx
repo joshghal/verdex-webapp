@@ -447,7 +447,7 @@ export default function AssessPage() {
                   ? 'border-verdex-500 bg-verdex-50/80 scale-[1.02]'
                   : uploadLoading
                     ? 'border-verdex-400 bg-verdex-50/60'
-                    : 'border-gray-300 hover:border-verdex-400'
+                    : 'border-gray-300 hover:border-verdex-500'
               }`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -503,6 +503,39 @@ export default function AssessPage() {
                 <span>{uploadError}</span>
               </div>
             )}
+
+            {/* Example Documents Banner - Minimal */}
+            <div className="mt-8 text-center">
+              <p className="text-sm text-gray-500 mb-3">
+                No document? Try with examples:
+              </p>
+              <div className="flex flex-wrap justify-center gap-2">
+                <a
+                  href="/samples/realistic/ethiopia-coffee.pdf"
+                  download
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-full transition-colors"
+                >
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                  Eligible
+                </a>
+                <a
+                  href="/samples/not-eligible/southafrica-coal.pdf"
+                  download
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-700 bg-red-50 hover:bg-red-100 rounded-full transition-colors"
+                >
+                  <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                  Ineligible
+                </a>
+                <a
+                  href="/samples/unrealistic/nigeria-greenwashing.pdf"
+                  download
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-full transition-colors"
+                >
+                  <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+                  Greenwashing
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -994,7 +1027,7 @@ export default function AssessPage() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Analyzing...
+                      Analyzing
                     </span>
                   ) : (
                     'Run Assessment'

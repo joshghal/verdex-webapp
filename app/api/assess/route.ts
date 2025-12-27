@@ -213,8 +213,9 @@ function calculateLMAScore(project: ProjectInput): {
     });
   }
 
-  // Check both transitionStrategy AND description for SBTi keywords
-  const fullText = (project.transitionStrategy + ' ' + project.description).toLowerCase();
+  // Check transitionStrategy, description, AND rawDocumentText for SBTi keywords
+  // rawDocumentText is a fallback for AI-generated drafts where keywords might not be in structured fields
+  const fullText = (project.transitionStrategy + ' ' + project.description + ' ' + (project.rawDocumentText || '')).toLowerCase();
 
   if (fullText.includes('sbti') || fullText.includes('science-based') || fullText.includes('science based targets')) {
     strategyScore += 5;

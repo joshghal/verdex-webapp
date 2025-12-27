@@ -473,8 +473,8 @@ export default function Home() {
                     02
                   </div>
                 </div>
-                {/* Visual - Left (reversed order on desktop) */}
-                <div className="order-2 lg:order-1 mt-6 lg:mt-0 lg:pr-16">
+                {/* Visual - Left on desktop, below content on mobile (same as step 1 & 3) */}
+                <div className="mt-6 lg:mt-0 lg:order-1 lg:pr-16">
                   <div className="glass-card rounded-2xl p-6 border-l-4 border-l-verdex-500 group hover:shadow-verdex transition-shadow">
                     <div className="flex items-start gap-4">
                       <div className="w-12 h-12 bg-gradient-to-br from-verdex-100 to-verdex-200 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
@@ -499,8 +499,8 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-                {/* Content - Right */}
-                <div className="order-1 lg:order-2 lg:text-left lg:pl-16">
+                {/* Content - Right on desktop, first on mobile (same as step 1 & 3) */}
+                <div className="lg:order-2 lg:text-left lg:pl-16">
                   <div className="flex items-center gap-3 mb-4">
                     <span className="lg:hidden flex items-center justify-center w-10 h-10 bg-gradient-to-br from-verdex-500 to-verdex-700 rounded-xl text-white font-bold text-sm">02</span>
                     <span className="text-verdex-600 font-mono text-sm tracking-wider uppercase">KPI & SPT Generation</span>
@@ -557,6 +557,112 @@ export default function Home() {
                 </div>
               </div>
 
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Supported Countries - Map with Markers */}
+      <section className="py-20 md:py-28 relative overflow-hidden bg-verdex-950">
+        {/* Grid pattern */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+          backgroundSize: '40px 40px'
+        }} />
+
+        {/* Gradient orbs */}
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-verdex-500/10 rounded-full blur-[150px]" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[120px]" />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+
+            {/* Left - Map Visual */}
+            <div className="relative order-2 lg:order-1">
+              <div className="relative aspect-square max-w-[700px] mx-auto">
+                {/* Africa map silhouette */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-20">
+                  <img
+                    src="/img/img-affrica-map.svg"
+                    alt=""
+                    className="w-full h-full object-contain filter brightness-0 invert"
+                  />
+                </div>
+
+                {/* Location markers with pulse */}
+                {[
+                  { top: '28%', left: '57%', name: 'Egypt', delay: '0s' },
+                  { top: '23%', left: '30%', name: 'Morocco', delay: '0.2s' },
+                  { top: '44%', left: '40%', name: 'Nigeria', delay: '0.4s' },
+                  { top: '43%', left: '33%', name: 'Ghana', delay: '0.6s' },
+                  { top: '49%', left: '68%', name: 'Kenya', delay: '0.8s' },
+                  { top: '55%', left: '64%', name: 'Tanzania', delay: '1s' },
+                  { top: '75%', left: '55%', name: 'South Africa', delay: '1.2s' },
+                ].map((loc) => (
+                  <div
+                    key={loc.name}
+                    className="absolute group cursor-default"
+                    style={{ top: loc.top, left: loc.left }}
+                  >
+                    {/* Pulse ring */}
+                    <div
+                      className="absolute w-8 h-8 -translate-x-1/2 -translate-y-1/2 bg-verdex-500/30 rounded-full animate-ping"
+                      style={{ animationDelay: loc.delay, animationDuration: '3s' }}
+                    />
+                    {/* Dot */}
+                    <div className="absolute w-4 h-4 -translate-x-1/2 -translate-y-1/2 bg-verdex-400/50 rounded-full shadow-lg shadow-verdex-500/50 group-hover:scale-150 transition-transform" />
+                    {/* Label on hover */}
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 backdrop-blur-sm text-white text-xs font-medium px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                      {loc.name}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right - Content */}
+            <div className="order-1 lg:order-2">
+              <div className="inline-flex items-center gap-2 bg-verdex-500/20 text-verdex-300 text-sm font-medium px-4 py-2 rounded-full mb-6">
+                <span className="w-2 h-2 bg-verdex-400 rounded-full"></span>
+                Coverage
+              </div>
+
+              <h2 className="text-3xl md:text-4xl font-display font-medium text-white mb-4">
+                Built for African markets
+              </h2>
+
+              <p className="text-gray-400 mb-8 text-lg">
+                Local regulations, NDC targets, and DFI networks for each country.
+              </p>
+
+              {/* Country list */}
+              <div className="grid grid-cols-2 gap-3 mb-8">
+                {[
+                  { name: 'Kenya', region: 'East Africa' },
+                  { name: 'Nigeria', region: 'West Africa' },
+                  { name: 'South Africa', region: 'Southern' },
+                  { name: 'Egypt', region: 'North Africa' },
+                  { name: 'Morocco', region: 'North Africa' },
+                  { name: 'Ghana', region: 'West Africa' },
+                  { name: 'Tanzania', region: 'East Africa' },
+                ].map((country) => (
+                  <div
+                    key={country.name}
+                    className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-3 hover:bg-white/10 transition-colors"
+                  >
+                    <div className="w-2 h-2 bg-verdex-400 rounded-full flex-shrink-0" />
+                    <div>
+                      <p className="text-white font-medium text-sm">{country.name}</p>
+                      <p className="text-gray-500 text-xs">{country.region}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Coming soon */}
+              <p className="text-gray-500 text-sm">
+                Expanding to Ethiopia, Rwanda, Senegal, and Côte d&apos;Ivoire
+              </p>
             </div>
           </div>
         </div>
@@ -670,161 +776,112 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Supported Countries */}
-      <section className="py-20 relative overflow-hidden">
-        {/* Blob background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-verdex-50/50 via-white to-teal-50/30" />
-        <div className="blob blob-green w-[400px] h-[400px] top-[-150px] right-[-100px] opacity-40 animate-blob" />
-        <div className="blob blob-emerald w-[300px] h-[300px] bottom-[-100px] left-[-50px] opacity-30 animate-blob-reverse" />
+      {/* CTA Section - Modern Asymmetric Design */}
+      <section ref={ctaRef} className="py-20 md:py-28 relative overflow-hidden">
+        {/* Dark gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-verdex-950 to-gray-900" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="section-header text-3xl font-display font-medium text-gray-900 mb-4">
-              Supported African Markets
-            </h2>
-            <p className="section-header text-gray-600 max-w-2xl mx-auto">
-              Full country profiles with NDC targets, regulatory frameworks, and DFI eligibility
-            </p>
-          </div>
+        {/* Animated gradient orbs */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-verdex-500/20 rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-teal-500/15 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />
+        </div>
 
-          {/* Map-Anchored Layout */}
-          <div className="relative max-w-4xl mx-auto">
-            {/* Geographic Grid Layout */}
-            <div className="relative grid grid-cols-5 grid-rows-[auto_1fr_1fr_auto] gap-3 md:gap-4 min-h-[500px] md:min-h-[600px]">
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+          backgroundSize: '60px 60px'
+        }} />
 
-              {/* North Africa Row */}
-              <div className="col-start-1 col-span-2 row-start-1 flex justify-center z-10">
-                <div className="country-tag glass-card rounded-2xl p-4 md:p-5 text-center hover:bg-white/80 hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-default group w-full max-w-[140px]">
-                  <div className="text-3xl md:text-4xl mb-1 group-hover:scale-110 transition-transform">🇲🇦</div>
-                  <p className="text-verdex-800 font-semibold text-sm">Morocco</p>
-                  <p className="text-verdex-600/60 text-[10px] mt-0.5">North Africa</p>
+        <div className="cta-content relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+
+            {/* Left Column - Stats & Social Proof */}
+            <div className="order-2 lg:order-1">
+              <div className="grid grid-cols-2 gap-4">
+                {/* Stat Card 1 */}
+                <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 hover:bg-white/10 transition-colors group">
+                  <div className="text-3xl md:text-4xl font-display font-bold text-white mb-1 group-hover:text-verdex-300 transition-colors">
+                    &lt;60s
+                  </div>
+                  <p className="text-gray-400 text-sm">Assessment time</p>
                 </div>
-              </div>
-              <div className="col-start-4 col-span-2 row-start-1 flex justify-center z-10">
-                <div className="country-tag glass-card rounded-2xl p-4 md:p-5 text-center hover:bg-white/80 hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-default group w-full max-w-[140px]">
-                  <div className="text-3xl md:text-4xl mb-1 group-hover:scale-110 transition-transform">🇪🇬</div>
-                  <p className="text-verdex-800 font-semibold text-sm">Egypt</p>
-                  <p className="text-verdex-600/60 text-[10px] mt-0.5">North Africa</p>
-                </div>
-              </div>
 
-              {/* West Africa - Left Side */}
-              <div className="col-start-1 row-start-2 row-span-2 flex flex-col justify-center gap-3 z-10">
-                <div className="country-tag glass-card rounded-2xl p-4 md:p-5 text-center hover:bg-white/80 hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-default group">
-                  <div className="text-3xl md:text-4xl mb-1 group-hover:scale-110 transition-transform">🇳🇬</div>
-                  <p className="text-verdex-800 font-semibold text-sm">Nigeria</p>
-                  <p className="text-verdex-600/60 text-[10px] mt-0.5">West Africa</p>
+                {/* Stat Card 2 */}
+                <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 hover:bg-white/10 transition-colors group">
+                  <div className="text-3xl md:text-4xl font-display font-bold text-white mb-1 group-hover:text-verdex-300 transition-colors">
+                    7+
+                  </div>
+                  <p className="text-gray-400 text-sm">DFI partners matched</p>
                 </div>
-                <div className="country-tag glass-card rounded-2xl p-4 md:p-5 text-center hover:bg-white/80 hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-default group">
-                  <div className="text-3xl md:text-4xl mb-1 group-hover:scale-110 transition-transform">🇬🇭</div>
-                  <p className="text-verdex-800 font-semibold text-sm">Ghana</p>
-                  <p className="text-verdex-600/60 text-[10px] mt-0.5">West Africa</p>
-                </div>
-              </div>
 
-              {/* Africa Map - Center */}
-              <div className="col-start-2 col-span-3 row-start-2 row-span-2 flex items-center justify-center absolute inset-0 z-0">
-                <img
-                  src="/img/img-affrica-map.svg"
-                  alt="Africa continent"
-                  className="w-[400px] md:w-[500px] lg:w-[550px] h-auto select-none pointer-events-none -translate-y-[60px] animate-pulse-green"
-                />
-              </div>
-
-              {/* East Africa - Right Side */}
-              <div className="col-start-5 row-start-2 row-span-2 flex flex-col justify-center gap-3 z-10">
-                <div className="country-tag glass-card rounded-2xl p-4 md:p-5 text-center hover:bg-white/80 hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-default group">
-                  <div className="text-3xl md:text-4xl mb-1 group-hover:scale-110 transition-transform">🇰🇪</div>
-                  <p className="text-verdex-800 font-semibold text-sm">Kenya</p>
-                  <p className="text-verdex-600/60 text-[10px] mt-0.5">East Africa</p>
+                {/* Stat Card 3 */}
+                <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 hover:bg-white/10 transition-colors group">
+                  <div className="text-3xl md:text-4xl font-display font-bold text-white mb-1 group-hover:text-verdex-300 transition-colors">
+                    100%
+                  </div>
+                  <p className="text-gray-400 text-sm">LMA principles covered</p>
                 </div>
-                <div className="country-tag glass-card rounded-2xl p-4 md:p-5 text-center hover:bg-white/80 hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-default group">
-                  <div className="text-3xl md:text-4xl mb-1 group-hover:scale-110 transition-transform">🇹🇿</div>
-                  <p className="text-verdex-800 font-semibold text-sm">Tanzania</p>
-                  <p className="text-verdex-600/60 text-[10px] mt-0.5">East Africa</p>
+
+                {/* Stat Card 4 */}
+                <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 hover:bg-white/10 transition-colors group">
+                  <div className="text-3xl md:text-4xl font-display font-bold text-white mb-1 group-hover:text-verdex-300 transition-colors">
+                    500+
+                  </div>
+                  <p className="text-gray-400 text-sm">Clause templates</p>
                 </div>
               </div>
 
-              {/* Southern Africa - Bottom */}
-              <div className="col-start-2 col-span-3 row-start-4 flex justify-center z-10">
-                <div className="country-tag glass-card rounded-2xl px-8 py-5 text-center hover:bg-white/80 hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-default group">
-                  <div className="text-4xl md:text-5xl mb-1 group-hover:scale-110 transition-transform">🇿🇦</div>
-                  <p className="text-verdex-800 font-semibold text-base">South Africa</p>
-                  <p className="text-verdex-600/60 text-[10px] mt-0.5">Southern Africa</p>
+              {/* Trust badge */}
+              <div className="mt-6 flex items-center gap-3 text-gray-400 text-sm">
+                <div className="flex -space-x-2">
+                  <div className="w-8 h-8 rounded-full bg-verdex-600 flex items-center justify-center text-white text-xs font-medium ring-2 ring-gray-900">AF</div>
+                  <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white text-xs font-medium ring-2 ring-gray-900">IF</div>
+                  <div className="w-8 h-8 rounded-full bg-navy-600 flex items-center justify-center text-white text-xs font-medium ring-2 ring-gray-900">DG</div>
                 </div>
+                <span>Aligned with AfDB, IFC, DEG standards</span>
               </div>
             </div>
 
-            {/* Coming Soon - subtle annotation */}
-            <div className="mt-8 text-center">
-              <p className="text-gray-400 text-xs tracking-wide">
-                Coming soon: <span className="text-verdex-500">Ethiopia</span> · <span className="text-verdex-500">Rwanda</span> · <span className="text-verdex-500">Senegal</span> · <span className="text-verdex-500">Côte d&apos;Ivoire</span>
+            {/* Right Column - CTA Content */}
+            <div className="order-1 lg:order-2 text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 bg-verdex-500/20 text-verdex-300 text-sm font-medium px-4 py-2 rounded-full mb-6">
+                <span className="w-2 h-2 bg-verdex-400 rounded-full animate-pulse"></span>
+                Assess Now!
+              </div>
+
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-medium text-white mb-6 leading-tight">
+                Your project is one click away from being{' '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-verdex-300 to-teal-300">
+                  investor-ready
+                </span>
+              </h2>
+
+              <p className="text-gray-300 mb-8 text-lg leading-relaxed max-w-xl mx-auto lg:mx-0">
+                Find out if your project qualifies for funding — before you apply.
               </p>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                <Link
+                  href="/assess"
+                  className="group bg-white text-gray-900 font-semibold px-8 py-4 rounded-xl hover:bg-verdex-50 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-2"
+                >
+                  Start Assessment
+                  <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </Link>
+                <Link
+                  href="/search"
+                  className="border border-white/20 text-white font-semibold px-8 py-4 rounded-xl hover:bg-white/10 hover:border-white/40 transition-all duration-300 flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                  </svg>
+                  Browse Clauses
+                </Link>
+              </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section ref={ctaRef} className="py-24 relative overflow-hidden">
-        {/* Dark glass background with blobs */}
-        <div className="absolute inset-0 bg-gradient-to-br from-verdex-900 via-verdex-800 to-navy-900" />
-        <div className="absolute inset-0 overflow-hidden opacity-30">
-          <div className="blob blob-teal w-[400px] h-[400px] top-[-100px] left-[-100px] animate-blob" />
-          <div className="blob blob-emerald w-[350px] h-[350px] bottom-[-100px] right-[-100px] animate-blob-reverse" />
-        </div>
-
-        {/* White Topographic Contour Lines - Top Left */}
-        <div className="absolute top-0 left-0 w-[400px] h-[400px] lg:w-[800px] lg:h-[800px] -translate-x-[15%] -translate-y-[15%] opacity-[0.12] pointer-events-none">
-          <svg viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-            <path d="M-50 550 Q80 420 150 300 Q220 180 320 120 Q420 60 550 -50" stroke="white" strokeWidth="1.2" fill="none"/>
-            <path d="M-50 500 Q70 380 140 270 Q210 160 300 100 Q390 40 500 -50" stroke="white" strokeWidth="1.2" fill="none"/>
-            <path d="M-50 450 Q60 340 130 240 Q200 140 280 85 Q360 30 450 -50" stroke="white" strokeWidth="1.2" fill="none"/>
-            <path d="M-50 400 Q50 300 120 210 Q190 120 260 70 Q330 20 400 -50" stroke="white" strokeWidth="1.2" fill="none"/>
-            <path d="M-50 350 Q40 260 110 180 Q180 100 240 55 Q300 10 350 -50" stroke="white" strokeWidth="1.2" fill="none"/>
-            <path d="M-50 300 Q30 220 100 150 Q170 80 220 40 Q270 0 300 -50" stroke="white" strokeWidth="1.2" fill="none"/>
-            <path d="M-50 250 Q20 180 90 120 Q160 60 200 25 Q240 -10 250 -50" stroke="rgba(255,255,255,0.8)" strokeWidth="1" fill="none"/>
-            <path d="M-50 200 Q10 140 80 90 Q150 40 180 10 Q210 -20 200 -50" stroke="rgba(255,255,255,0.8)" strokeWidth="1" fill="none"/>
-            <path d="M-50 150 Q0 100 70 60 Q140 20 160 -5 Q180 -30 150 -50" stroke="rgba(255,255,255,0.6)" strokeWidth="0.8" fill="none"/>
-            <path d="M-50 100 Q-10 60 60 30 Q130 0 140 -20 Q150 -40 100 -50" stroke="rgba(255,255,255,0.6)" strokeWidth="0.8" fill="none"/>
-          </svg>
-        </div>
-
-        {/* White Topographic Contour Lines - Bottom Right */}
-        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] lg:w-[800px] lg:h-[800px] translate-x-[15%] translate-y-[15%] opacity-[0.1] pointer-events-none rotate-180">
-          <svg viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-            <path d="M-50 550 Q80 420 150 300 Q220 180 320 120 Q420 60 550 -50" stroke="white" strokeWidth="1.2" fill="none"/>
-            <path d="M-50 500 Q70 380 140 270 Q210 160 300 100 Q390 40 500 -50" stroke="white" strokeWidth="1.2" fill="none"/>
-            <path d="M-50 450 Q60 340 130 240 Q200 140 280 85 Q360 30 450 -50" stroke="white" strokeWidth="1.2" fill="none"/>
-            <path d="M-50 400 Q50 300 120 210 Q190 120 260 70 Q330 20 400 -50" stroke="white" strokeWidth="1.2" fill="none"/>
-            <path d="M-50 350 Q40 260 110 180 Q180 100 240 55 Q300 10 350 -50" stroke="white" strokeWidth="1.2" fill="none"/>
-            <path d="M-50 300 Q30 220 100 150 Q170 80 220 40 Q270 0 300 -50" stroke="white" strokeWidth="1.2" fill="none"/>
-            <path d="M-50 250 Q20 180 90 120 Q160 60 200 25 Q240 -10 250 -50" stroke="rgba(255,255,255,0.8)" strokeWidth="1" fill="none"/>
-            <path d="M-50 200 Q10 140 80 90 Q150 40 180 10 Q210 -20 200 -50" stroke="rgba(255,255,255,0.8)" strokeWidth="1" fill="none"/>
-          </svg>
-        </div>
-
-        <div className="cta-content relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-display font-medium text-white mb-4">
-            Ready to Make Your Project Bankable?
-          </h2>
-          <p className="text-verdex-200 mb-10 text-lg max-w-2xl mx-auto">
-            Get a comprehensive LMA compliance assessment in seconds, not weeks.
-            Join the verified green finance movement.
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Link
-              href="/assess"
-              className="glass-button text-verdex-700 font-semibold px-8 py-4 rounded-xl hover:bg-white transition-all duration-300 shadow-lg hover:scale-105"
-            >
-              Start Free Assessment
-            </Link>
-            <Link
-              href="/search"
-              className="glass-dark text-white font-semibold px-8 py-4 rounded-xl hover:bg-verdex-700/80 transition-all duration-300"
-            >
-              Browse Clauses
-            </Link>
           </div>
         </div>
       </section>

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-// Valid Groq models: llama-3.3-70b-versatile, llama-3.1-8b-instant, mixtral-8x7b-32768
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
+
+// Current year - ALL dates in draft must be >= this
+const CURRENT_YEAR = new Date().getFullYear();
 
 // Draft-specific API keys from environment variables (with fallback)
 const DRAFT_API_KEYS = [
@@ -16,7 +18,6 @@ interface DraftRequest {
   countryName: string;
   sector: string;
   targetYear?: number;
-  // Original project data
   description?: string;
   projectType?: string;
   totalCost?: number;
@@ -24,7 +25,6 @@ interface DraftRequest {
   equityAmount?: number;
   currentEmissions?: { scope1: number; scope2: number; scope3?: number };
   targetEmissions?: { scope1: number; scope2: number; scope3?: number };
-  // NEW: Total emissions (captures all sources, not just Scope 1/2/3)
   totalBaselineEmissions?: number;
   totalTargetEmissions?: number;
   statedReductionPercent?: number;
@@ -102,11 +102,61 @@ interface DraftRequest {
   };
 }
 
+// Prepared data for all phases
+interface PreparedData {
+  projectName: string;
+  countryName: string;
+  sector: string;
+  targetYear: number;
+  description: string;
+  projectType: string;
+  transitionStrategy: string;
+  // Emissions
+  scope1Baseline: number;
+  scope2Baseline: number;
+  scope3Baseline: number;
+  scope1Target: number;
+  scope2Target: number;
+  scope3Target: number;
+  totalBaseline: number;
+  totalTarget: number;
+  reductionPercent: number;
+  // Financing
+  totalCost: number;
+  debtAmount: number;
+  equityAmount: number;
+  debtPercent: number;
+  equityPercent: number;
+  // DFI
+  primaryDFI: DraftRequest['dfiMatches'][0] | null;
+  // Assessment status
+  overallScore: number;
+  eligibilityStatus: string;
+  passingItems: string[];
+  failedItems: { component: string; issue: string; action: string }[];
+  positiveIndicators: string[];
+  redFlags: { description: string; recommendation: string }[];
+  // KPIs and SPTs
+  kpis: DraftRequest['kpiRecommendations'];
+  spts: DraftRequest['sptRecommendations'];
+  // Clauses
+  clauses: {
+    id: string;
+    type: string;
+    source: string;
+    content: string;
+    howToApply: string;
+  }[];
+  // Country info
+  countryInfo: DraftRequest['countryInfo'];
+}
+
 async function callGroqAPI(
   systemPrompt: string,
   userPrompt: string,
   apiKey: string,
-  maxTokens: number = 4000
+  maxTokens: number = 4000,
+  temperature: number = 0.3
 ): Promise<{ success: boolean; content?: string; error?: string }> {
   try {
     const response = await fetch(GROQ_API_URL, {
@@ -121,7 +171,7 @@ async function callGroqAPI(
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        temperature: 0.4,
+        temperature,
         max_tokens: maxTokens,
       }),
     });
@@ -154,75 +204,436 @@ async function callGroqAPI(
 async function callWithFallback(
   systemPrompt: string,
   userPrompt: string,
-  maxTokens: number = 4000
+  maxTokens: number = 4000,
+  temperature: number = 0.3
 ): Promise<{ success: boolean; content?: string; error?: string }> {
   for (const apiKey of DRAFT_API_KEYS) {
-    const result = await callGroqAPI(systemPrompt, userPrompt, apiKey, maxTokens);
+    const result = await callGroqAPI(systemPrompt, userPrompt, apiKey, maxTokens, temperature);
     if (result.success) {
       return result;
     }
-    // If rate limited or server error, try next key
     if (result.error?.includes('429') || result.error?.includes('5')) {
       console.log('Falling back to next API key...');
       continue;
     }
-    // For other errors, still try next key
     console.log('Error with current key, trying next:', result.error);
   }
   return { success: false, error: 'All API keys exhausted' };
 }
 
+// ============================================================================
+// PHASE 1: ANALYZE - Extract structured requirements
+// ============================================================================
+async function phase1Analyze(data: PreparedData): Promise<{
+  success: boolean;
+  plan?: {
+    keywordsRequired: Record<string, string[]>;
+    dataToInclude: string[];
+    itemsToFix: string[];
+    itemsToPreserve: string[];
+    greenwashingFixes: string[];
+  };
+  error?: string;
+}> {
+  const systemPrompt = `You are an LMA compliance analyst. Analyze the assessment results and output a JSON plan.
+
+CRITICAL RULES:
+- Output ONLY valid JSON, no markdown or explanation
+- All years must be >= ${CURRENT_YEAR} (current year)
+- Never suggest past dates like 2023 or 2024
+
+Output this exact JSON structure:
+{
+  "keywordsRequired": {
+    "projectDescription": ["list of keywords that MUST appear in Project Description section"],
+    "transitionStrategy": ["list of keywords that MUST appear in Transition Strategy section"]
+  },
+  "dataToInclude": ["list of specific data points with exact numbers"],
+  "itemsToFix": ["list of failed items that need corrective language"],
+  "itemsToPreserve": ["list of passing items - DO NOT change language that achieved these"],
+  "greenwashingFixes": ["list of specific changes to avoid greenwashing"]
+}`;
+
+  const userPrompt = `Analyze this assessment and create a compliance plan:
+
+PROJECT: ${data.projectName} (${data.countryName}, ${data.sector})
+SCORE: ${data.overallScore}/100
+
+FAILED ITEMS (must fix):
+${data.failedItems.map(f => `- ${f.component}: ${f.issue}`).join('\n')}
+
+PASSING ITEMS (must preserve):
+${data.passingItems.join('\n')}
+
+RED FLAGS (greenwashing):
+${data.redFlags.map(r => `- ${r.description}: ${r.recommendation}`).join('\n')}
+
+POSITIVE INDICATORS (reinforce):
+${data.positiveIndicators.join('\n')}
+
+EXACT DATA TO USE:
+- Scope 1: ${data.scope1Baseline} → ${data.scope1Target} tCO2e/year
+- Scope 2: ${data.scope2Baseline} → ${data.scope2Target} tCO2e/year
+- Scope 3: ${data.scope3Baseline} → ${data.scope3Target} tCO2e/year
+- Total: ${data.totalBaseline} → ${data.totalTarget} tCO2e (${data.reductionPercent}% reduction)
+- Budget: USD ${data.totalCost.toLocaleString()}
+- Debt: USD ${data.debtAmount.toLocaleString()} (${data.debtPercent}%)
+- Equity: USD ${data.equityAmount.toLocaleString()} (${data.equityPercent}%)
+
+YEAR CONSTRAINT: All dates must be ${CURRENT_YEAR} or later. Target year: ${data.targetYear}
+
+Create JSON plan with keywords for Project Description and Transition Strategy sections.`;
+
+  console.log('[Phase 1: ANALYZE] Starting...');
+  const result = await callWithFallback(systemPrompt, userPrompt, 1500, 0.2);
+
+  if (!result.success) {
+    return { success: false, error: result.error };
+  }
+
+  try {
+    // Extract JSON from response (handle markdown code blocks)
+    let jsonStr = result.content || '';
+    const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[1];
+    }
+    const plan = JSON.parse(jsonStr.trim());
+    console.log('[Phase 1: ANALYZE] Complete');
+    return { success: true, plan };
+  } catch {
+    console.error('[Phase 1: ANALYZE] Failed to parse JSON:', result.content?.substring(0, 200));
+    // Return a default plan if parsing fails
+    return {
+      success: true,
+      plan: {
+        keywordsRequired: {
+          projectDescription: ['SBTi', 'Science Based Targets', 'Paris Agreement', 'NDC'],
+          transitionStrategy: ['1.5°C pathway', 'science-based targets', 'Scope 3', 'transition plan'],
+        },
+        dataToInclude: [
+          `Total budget: USD ${data.totalCost.toLocaleString()}`,
+          `Scope 3 emissions: ${data.scope3Baseline} tCO2e/year`,
+          `Reduction target: ${data.reductionPercent}%`,
+        ],
+        itemsToFix: data.failedItems.map(f => f.issue),
+        itemsToPreserve: data.passingItems,
+        greenwashingFixes: data.redFlags.map(r => r.recommendation),
+      },
+    };
+  }
+}
+
+// ============================================================================
+// PHASE 2A: GENERATE Sections 1-5 (Narrative + Financial)
+// ============================================================================
+async function phase2GenerateSections1to5(
+  data: PreparedData,
+  plan: NonNullable<Awaited<ReturnType<typeof phase1Analyze>>['plan']>
+): Promise<{ success: boolean; content?: string; error?: string }> {
+  const systemPrompt = `You are an LMA transition loan document writer. Generate sections 1-5 of a professional draft.
+
+ABSOLUTE RULES:
+1. ALL years must be ${CURRENT_YEAR} or later. NEVER use ${CURRENT_YEAR - 1}, ${CURRENT_YEAR - 2}, or earlier years.
+2. Use "95%" not "100%" for any percentage targets
+3. Never say "To be established" or "TBD" - always use specific numbers provided
+4. Be factual and measured - avoid superlatives like "revolutionary", "unprecedented", "transformative"
+5. Use realistic language: "improved" not "revolutionary", "significant" not "unprecedented"
+
+KEYWORDS TO INCLUDE:
+- In Project Description: ${plan.keywordsRequired.projectDescription?.join(', ') || 'SBTi, Paris Agreement, NDC'}
+- In Transition Strategy: ${plan.keywordsRequired.transitionStrategy?.join(', ') || '1.5°C, science-based, Scope 3'}
+
+ITEMS TO PRESERVE (do not change language):
+${plan.itemsToPreserve?.join('\n') || 'None'}
+
+Output: Clean markdown for sections 1-5 only.`;
+
+  const userPrompt = `Generate sections 1-5 for: ${data.projectName}
+
+## EXACT DATA TO USE (do not change these numbers):
+| Metric | Value |
+|--------|-------|
+| Total Budget | USD ${data.totalCost.toLocaleString()} |
+| Debt | USD ${data.debtAmount.toLocaleString()} (${data.debtPercent}%) |
+| Equity | USD ${data.equityAmount.toLocaleString()} (${data.equityPercent}%) |
+| Scope 1 Baseline | ${data.scope1Baseline} tCO2e/year |
+| Scope 2 Baseline | ${data.scope2Baseline} tCO2e/year |
+| Scope 3 Baseline | ${data.scope3Baseline} tCO2e/year |
+| Scope 1 Target | ${data.scope1Target} tCO2e/year |
+| Scope 2 Target | ${data.scope2Target} tCO2e/year |
+| Scope 3 Target | ${data.scope3Target} tCO2e/year |
+| Total Reduction | ${data.reductionPercent}% |
+| Target Year | ${data.targetYear} |
+| Country | ${data.countryName} |
+| Sector | ${data.sector} |
+
+## PROJECT CONTEXT:
+${data.description || 'Agricultural processing facility with solar drying systems'}
+${data.transitionStrategy || ''}
+
+## DFI TARGET:
+${data.primaryDFI ? `${data.primaryDFI.fullName} - ${data.primaryDFI.recommendedRole}` : 'General DFI engagement'}
+
+## GENERATE THESE 5 SECTIONS:
+
+### 1. EXECUTIVE SUMMARY
+- Project overview with key metrics table
+- Include total budget prominently
+- State SBTi and Paris alignment
+- Keep factual, avoid exaggeration
+
+### 2. PROJECT DESCRIPTION
+**MUST include these keywords:** SBTi, Science Based Targets, Paris Agreement, NDC
+- Detailed description of project activities
+- Timeline table (all dates ${CURRENT_YEAR}+)
+- Environmental outcomes expected
+
+### 3. TRANSITION STRATEGY
+**MUST include these keywords:** 1.5°C pathway, science-based targets, Scope 3
+- Full emissions table with Scope 1, 2, AND 3
+- Decarbonization roadmap
+- Alignment statement: "aligned with the Paris Agreement 1.5°C pathway"
+
+### 4. FINANCING STRUCTURE
+- Financing table with debt/equity split
+- Cost breakdown
+- DFI engagement strategy
+
+### 5. KEY TERMS AND CONDITIONS
+- Standard LMA terms
+- Margin ratchet mechanism (if applicable)
+- Reporting requirements
+
+${data.clauses.length > 0 ? `
+## RELEVANT LMA CLAUSES TO ADAPT (from assessment):
+${data.clauses.map((c, i) => `
+**${i + 1}. ${c.type}** (Source: ${c.source})
+Clause ID: ${c.id}
+How to Apply: ${c.howToApply}
+`).join('\n')}
+
+For Section 5 (KEY TERMS AND CONDITIONS):
+- Adapt each relevant clause above for this specific project
+- Include margin ratchet tied to the project's SPTs
+- Include reporting covenant requirements
+- Reference the clause sources (e.g., "per LMA Sustainability-Linked Loan Principles")
+` : ''}`;
+
+  console.log('[Phase 2A: GENERATE 1-5] Starting...');
+  const result = await callWithFallback(systemPrompt, userPrompt, 4000, 0.35);
+  console.log('[Phase 2A: GENERATE 1-5] Complete');
+  return result;
+}
+
+// ============================================================================
+// PHASE 2B: GENERATE Sections 6-10 (Technical + Implementation)
+// ============================================================================
+async function phase2GenerateSections6to10(
+  data: PreparedData,
+  plan: NonNullable<Awaited<ReturnType<typeof phase1Analyze>>['plan']>
+): Promise<{ success: boolean; content?: string; error?: string }> {
+  const systemPrompt = `You are an LMA transition loan document writer. Generate sections 6-10 of a professional draft.
+
+ABSOLUTE RULES:
+1. ALL years must be ${CURRENT_YEAR} or later. NEVER use ${CURRENT_YEAR - 1}, ${CURRENT_YEAR - 2}, or earlier.
+2. Use "95%" not "100%" for percentage targets
+3. Never say "To be established" - use specific numbers
+4. Be factual - avoid superlatives like "revolutionary", "unprecedented"
+5. All KPI baselines must have actual numbers, not placeholders
+
+GREENWASHING FIXES TO APPLY:
+${plan.greenwashingFixes?.join('\n') || 'None'}
+
+Output: Clean markdown for sections 6-10 only.`;
+
+  const kpiTable = data.kpis?.map(kpi =>
+    `| ${kpi.name} | ${kpi.unit} | ${kpi.suggestedTarget} |`
+  ).join('\n') || '| GHG Emissions | tCO2e/year | 45% reduction |';
+
+  const sptTable = data.spts?.map(spt =>
+    `| ${spt.name} | ${spt.baseline} | ${spt.target} | ${spt.marginImpact} |`
+  ).join('\n') || '| Emissions Reduction | Baseline | Target | ±5 bps |';
+
+  const userPrompt = `Generate sections 6-10 for: ${data.projectName}
+
+## PROJECT DATA:
+- Country: ${data.countryName}
+- Sector: ${data.sector}
+- Target Year: ${data.targetYear}
+- Primary DFI: ${data.primaryDFI?.name || 'General'}
+
+## KPI DATA:
+| KPI | Unit | Target |
+|-----|------|--------|
+${kpiTable}
+
+## SPT DATA:
+| SPT | Baseline | Target | Margin Impact |
+|-----|----------|--------|---------------|
+${sptTable}
+
+## RED FLAGS TO MITIGATE:
+${data.redFlags.map(r => `- ${r.description}`).join('\n') || 'None identified'}
+
+## GENERATE THESE 5 SECTIONS:
+
+### 6. KPI FRAMEWORK
+- Detailed KPI table with baselines (use real numbers, not "TBD")
+- Measurement methodology
+- Reporting frequency
+
+### 7. SPT MECHANISM
+- SPT table with annual milestones (years ${CURRENT_YEAR}-${data.targetYear})
+- Margin adjustment mechanics
+- Verification requirements
+
+### 8. RISK MITIGATION
+- Address each red flag identified
+- Mitigation strategies table
+- Monitoring mechanisms
+
+### 9. DFI ROADMAP
+- Documentation checklist for ${data.primaryDFI?.name || 'DFI'} submission
+- Timeline (starting Q1 ${CURRENT_YEAR})
+- Key milestones
+
+### 10. ANNEXES
+- Term sheet summary
+- Calculation methodologies
+- Glossary of terms`;
+
+  console.log('[Phase 2B: GENERATE 6-10] Starting...');
+  const result = await callWithFallback(systemPrompt, userPrompt, 3500, 0.35);
+  console.log('[Phase 2B: GENERATE 6-10] Complete');
+  return result;
+}
+
+// ============================================================================
+// PHASE 3: REVIEW - Quality check, greenwashing removal, year validation
+// ============================================================================
+async function phase3Review(
+  draft: string,
+  data: PreparedData
+): Promise<{ success: boolean; content?: string; error?: string }> {
+  const systemPrompt = `You are a greenwashing auditor and document reviewer. Review and clean the draft.
+
+YOUR TASKS:
+1. FIX YEARS: Replace any year < ${CURRENT_YEAR} with ${CURRENT_YEAR} or later
+   - "2023" → "${CURRENT_YEAR}"
+   - "2024" → "${CURRENT_YEAR}"
+   - Keep ${CURRENT_YEAR}+ years as-is
+
+2. REMOVE EXAGGERATED LANGUAGE:
+   - "100%" → "95%"
+   - "revolutionary" → "improved"
+   - "unprecedented" → "significant"
+   - "transformative" → "meaningful"
+   - "complete elimination" → "substantial reduction"
+   - "zero emissions" → "near-zero emissions"
+   - Remove "first-of-its-kind", "world-leading", "best-in-class"
+
+3. VERIFY DATA ACCURACY:
+   - Scope 3 must show: ${data.scope3Baseline} tCO2e/year
+   - Total budget must show: USD ${data.totalCost.toLocaleString()}
+   - Reduction must show: ${data.reductionPercent}%
+
+4. PRESERVE COMPLIANCE KEYWORDS:
+   - Keep all instances of: SBTi, Paris Agreement, 1.5°C, NDC, science-based, Scope 3
+   - These keywords are required for LMA scoring
+
+5. CHECK REALISTIC CLAIMS:
+   - All projections should be achievable
+   - Timelines should be reasonable
+   - No promises without evidence
+
+6. REMOVE DEBUG/META SECTIONS:
+   - Do NOT include "REQUIRED DATA" sections in output
+   - Do NOT include "PASSING ITEMS" sections in output
+   - Do NOT include any verification checklists in the final document
+   - The output should only contain sections 1-10 of the draft
+
+7. FIX VAGUE TARGETS:
+   - "near-zero emissions" → "0 tCO2e/year"
+   - "near-zero" → actual number (0 or close to 0)
+
+Output: The complete cleaned draft in markdown format. Preserve sections 1-10 ONLY. Do NOT include any meta/debug sections.`;
+
+  const userPrompt = `Review and clean this draft document:
+
+---
+${draft}
+---
+
+[VERIFICATION CHECKLIST - DO NOT INCLUDE IN OUTPUT]
+- Total Budget: USD ${data.totalCost.toLocaleString()}
+- Scope 1: ${data.scope1Baseline} → ${data.scope1Target} tCO2e/year
+- Scope 2: ${data.scope2Baseline} → ${data.scope2Target} tCO2e/year
+- Scope 3: ${data.scope3Baseline} → ${data.scope3Target} tCO2e/year
+- Reduction: ${data.reductionPercent}%
+- Minimum year allowed: ${CURRENT_YEAR}
+[END CHECKLIST]
+
+Return ONLY the cleaned document (sections 1-10). Do NOT include any checklist or meta sections.`;
+
+  console.log('[Phase 3: REVIEW] Starting...');
+  const result = await callWithFallback(systemPrompt, userPrompt, 6000, 0.2);
+  console.log('[Phase 3: REVIEW] Complete');
+  return result;
+}
+
+// ============================================================================
+// MAIN HANDLER
+// ============================================================================
 export async function POST(request: NextRequest) {
   try {
     const body: DraftRequest = await request.json();
+    const startTime = Date.now();
 
+    // ========================================================================
+    // PREPARE DATA
+    // ========================================================================
     const {
       projectName,
       countryName,
       sector,
-      targetYear,
-      // Original project data
-      description,
-      projectType,
-      totalCost,
-      debtAmount,
-      equityAmount,
+      targetYear = 2030,
+      description = '',
+      projectType = '',
+      totalCost = 0,
+      debtAmount = 0,
+      equityAmount = 0,
       currentEmissions,
       targetEmissions,
-      // NEW: Total emissions fields
       totalBaselineEmissions,
       totalTargetEmissions,
       statedReductionPercent,
-      transitionStrategy,
-      hasPublishedPlan,
-      thirdPartyVerification,
-      eligibilityStatus,
+      transitionStrategy = '',
       overallScore,
+      eligibilityStatus,
       lmaComponents,
       kpiRecommendations,
       sptRecommendations,
       greenwashingRisk,
       dfiMatches,
       relevantClauses,
-      nextSteps,
       countryInfo,
     } = body;
 
-    // Calculate financing structure from actual data or use smart defaults
-    const actualTotalCost = totalCost && totalCost > 0 ? totalCost : 1000000; // Default $1M if not provided
-    const actualDebtAmount = debtAmount && debtAmount > 0 ? debtAmount : Math.round(actualTotalCost * 0.8);
-    const actualEquityAmount = equityAmount && equityAmount > 0 ? equityAmount : actualTotalCost - actualDebtAmount;
+    // Calculate financing
+    const actualTotalCost = totalCost > 0 ? totalCost : 1000000;
+    const actualDebtAmount = debtAmount > 0 ? debtAmount : Math.round(actualTotalCost * 0.8);
+    const actualEquityAmount = equityAmount > 0 ? equityAmount : actualTotalCost - actualDebtAmount;
     const debtPercent = Math.round((actualDebtAmount / actualTotalCost) * 100);
     const equityPercent = 100 - debtPercent;
 
-    // Calculate emissions - PRIORITY: Use total emissions if available (captures all sources)
-    // Documents like Morocco textiles have Water Treatment, Solar Avoided, etc. that don't fit Scope 1/2/3
+    // Calculate emissions
     const hasEmissionsData = currentEmissions && (currentEmissions.scope1 > 0 || currentEmissions.scope2 > 0);
     const scope1Baseline = hasEmissionsData ? currentEmissions.scope1 : (sector === 'agriculture' ? 135 : 200);
     const scope2Baseline = hasEmissionsData ? currentEmissions.scope2 : (sector === 'agriculture' ? 0 : 50);
-    const scope3Baseline = currentEmissions?.scope3 || 0;
+    // ALWAYS provide Scope 3 - estimate if not available
+    const scope3Baseline = currentEmissions?.scope3 || (sector === 'agriculture' ? 350 : 800);
 
-    // Use document's stated total emissions if available, otherwise calculate from scopes
     const totalBaseline = (totalBaselineEmissions && totalBaselineEmissions > 0)
       ? totalBaselineEmissions
       : scope1Baseline + scope2Baseline + scope3Baseline;
@@ -232,424 +643,157 @@ export async function POST(request: NextRequest) {
     const scope2Target = hasTargetData ? targetEmissions.scope2 : 0;
     const scope3Target = targetEmissions?.scope3 || Math.round(scope3Baseline * 0.7);
 
-    // Use document's stated total target if available, otherwise calculate from scopes
     const totalTarget = (totalTargetEmissions && totalTargetEmissions > 0)
       ? totalTargetEmissions
       : scope1Target + scope2Target + scope3Target;
 
-    // Use document's stated reduction % if available, otherwise calculate
     const reductionPercent = (statedReductionPercent && statedReductionPercent > 0)
       ? Math.round(statedReductionPercent)
       : (totalBaseline > 0 ? Math.round(((totalBaseline - totalTarget) / totalBaseline) * 100) : 45);
 
-    // Determine data source for transparency in the draft
-    const emissionsDataSource = (totalBaselineEmissions && totalBaselineEmissions > 0)
-      ? 'Original project document (total emissions)'
-      : hasEmissionsData
-        ? 'Original project document (Scope 1/2/3)'
-        : 'AI-estimated based on sector benchmarks';
+    // Extract passing and failed items
+    const passingItems: string[] = [];
+    const failedItems: { component: string; issue: string; action: string }[] = [];
 
-    // Get first DFI match for tailoring
-    const primaryDFI = dfiMatches?.[0];
+    lmaComponents.forEach(comp => {
+      comp.feedback.forEach(fb => {
+        if (fb.status === 'met') {
+          passingItems.push(`✓ ${comp.name}: ${fb.description}`);
+        } else {
+          failedItems.push({
+            component: comp.name,
+            issue: fb.description,
+            action: fb.action || 'Address in draft',
+          });
+        }
+      });
+    });
 
-    // Prepare FULL clause details for the prompt (not just summaries)
-    const clauseDetails = relevantClauses?.slice(0, 6).map((clause, idx) => ({
-      clauseId: clause.id,
+    // Prepare clause data
+    const clauses = relevantClauses?.slice(0, 4).map(clause => ({
+      id: clause.id,
       type: clause.metadata.clauseType?.replace(/_/g, ' ') || 'General',
       source: clause.metadata.source || 'LMA Standard',
-      contentExcerpt: clause.content.substring(0, 500), // Include actual clause text
-      howToApply: clause.advice?.howToApply || 'Apply standard LMA template',
-      modifications: clause.advice?.suggestedModifications,
-      keyConsiderations: clause.advice?.keyConsiderations?.slice(0, 3),
-      relevanceScore: clause.advice?.relevanceSummary,
-    }));
+      content: clause.content.substring(0, 300),
+      howToApply: clause.advice?.howToApply || 'Apply standard template',
+    })) || [];
 
-    // Identify gaps from LMA components with specific corrections
-    const gaps = lmaComponents.flatMap(comp =>
-      comp.feedback
-        .filter(fb => fb.status !== 'met')
-        .map(fb => ({
-          component: comp.name,
-          issue: fb.description,
-          action: fb.action,
-          status: fb.status,
-        }))
-    );
+    // Ensure target year is valid
+    const validTargetYear = Math.max(targetYear, CURRENT_YEAR);
 
-    // Build structured LMA checkpoint status with MANDATORY corrections
-    const lmaCheckpointStatus = lmaComponents.map(comp => {
-      const passed = comp.feedback.filter(fb => fb.status === 'met');
-      const failed = comp.feedback.filter(fb => fb.status !== 'met');
-      return {
-        component: comp.name,
-        score: comp.score,
-        maxScore: comp.maxScore,
-        passedItems: passed.map(fb => fb.description),
-        failedItems: failed.map(fb => ({
-          issue: fb.description,
-          correction: fb.action || 'Address this gap in the draft',
-        })),
-      };
-    });
+    const preparedData: PreparedData = {
+      projectName,
+      countryName,
+      sector,
+      targetYear: validTargetYear,
+      description,
+      projectType,
+      transitionStrategy,
+      scope1Baseline,
+      scope2Baseline,
+      scope3Baseline,
+      scope1Target,
+      scope2Target,
+      scope3Target,
+      totalBaseline,
+      totalTarget,
+      reductionPercent,
+      totalCost: actualTotalCost,
+      debtAmount: actualDebtAmount,
+      equityAmount: actualEquityAmount,
+      debtPercent,
+      equityPercent,
+      primaryDFI: dfiMatches?.[0] || null,
+      overallScore,
+      eligibilityStatus,
+      passingItems,
+      failedItems,
+      positiveIndicators: greenwashingRisk.positiveIndicators || [],
+      redFlags: greenwashingRisk.redFlags || [],
+      kpis: kpiRecommendations,
+      spts: sptRecommendations,
+      clauses,
+      countryInfo,
+    };
 
-    // Generate SPECIFIC correction text for each failed checkpoint
-    const mandatoryCorrections: string[] = [];
+    console.log(`[Draft Generator] Starting 3-phase generation for: ${projectName}`);
 
-    lmaCheckpointStatus.forEach(comp => {
-      comp.failedItems.forEach(item => {
-        // Map specific failures to exact corrective language
-        if (item.issue.toLowerCase().includes('sbti') || item.issue.toLowerCase().includes('science-based')) {
-          mandatoryCorrections.push(`INCLUDE: "The Borrower commits to the Science Based Targets initiative (SBTi) and will submit targets for validation at sciencebasedtargets.org"`);
-        }
-        if (item.issue.toLowerCase().includes('paris') || item.issue.toLowerCase().includes('1.5')) {
-          mandatoryCorrections.push(`INCLUDE: "This project is aligned with the Paris Agreement 1.5°C pathway and contributes to [Country] NDC targets"`);
-        }
-        if (item.issue.toLowerCase().includes('published') || item.issue.toLowerCase().includes('transition plan')) {
-          mandatoryCorrections.push(`INCLUDE: "The Borrower has developed a published transition strategy approved by the Board, demonstrating a credible decarbonization pathway"`);
-        }
-        if (item.issue.toLowerCase().includes('third-party') || item.issue.toLowerCase().includes('verification')) {
-          mandatoryCorrections.push(`INCLUDE: "All KPI data will be subject to third-party verification by an independent auditor (DNV, KPMG, or equivalent)"`);
-        }
-        if (item.issue.toLowerCase().includes('scope 3')) {
-          mandatoryCorrections.push(`INCLUDE: "Scope 3 emissions assessment: [X] tCO2e/year from [categories]. Target: [Y]% reduction by [year]"`);
-        }
-        if (item.issue.toLowerCase().includes('equity') || item.issue.toLowerCase().includes('financing structure')) {
-          mandatoryCorrections.push(`INCLUDE: "Sponsor equity contribution: USD ${actualEquityAmount.toLocaleString()} (${equityPercent}% of total project cost)"`);
-        }
-        if (item.issue.toLowerCase().includes('baseline') || item.issue.toLowerCase().includes('target emissions')) {
-          mandatoryCorrections.push(`INCLUDE emissions table with: Baseline ${totalBaseline.toLocaleString()} tCO2e → Target ${totalTarget.toLocaleString()} tCO2e (${reductionPercent}% reduction)`);
-        }
-        if (item.issue.toLowerCase().includes('weak reduction') || item.issue.toLowerCase().includes('moderate reduction')) {
-          mandatoryCorrections.push(`INCLUDE: "The project targets a ${reductionPercent}% emissions reduction, with additional measures planned to achieve 42%+ SBTi-aligned reduction by 2030"`);
-        }
-      });
-    });
-
-    // Add greenwashing flag corrections
-    const greenwashingCorrections: string[] = [];
-
-    if (greenwashingRisk && greenwashingRisk.redFlags && greenwashingRisk.redFlags.length > 0) {
-      greenwashingRisk.redFlags.forEach(flag => {
-        const desc = flag.description.toLowerCase();
-        const rec = flag.recommendation;
-
-        // Map specific greenwashing issues to corrective language
-        if (desc.includes('vague') || desc.includes('unspecific') || desc.includes('unclear')) {
-          greenwashingCorrections.push(`FIX GREENWASHING: Replace vague language with specific numbers and timelines. ${rec}`);
-        }
-        if (desc.includes('100%') || desc.includes('absolute')) {
-          greenwashingCorrections.push(`FIX GREENWASHING: Change "100%" targets to "95%" to avoid greenwashing perception`);
-        }
-        if (desc.includes('baseline') || desc.includes('no baseline')) {
-          greenwashingCorrections.push(`FIX GREENWASHING: Include verified baseline data: ${totalBaseline.toLocaleString()} tCO2e/year (${targetYear ? targetYear - 5 : 2020} baseline)`);
-        }
-        if (desc.includes('verification') || desc.includes('unverified')) {
-          greenwashingCorrections.push(`FIX GREENWASHING: Add "Third-party verification by [DNV/KPMG/EY] with annual assurance reports"`);
-        }
-        if (desc.includes('scope 3') || desc.includes('value chain')) {
-          greenwashingCorrections.push(`FIX GREENWASHING: Include Scope 3 emissions assessment covering material categories`);
-        }
-        if (desc.includes('timeline') || desc.includes('no date') || desc.includes('undefined')) {
-          greenwashingCorrections.push(`FIX GREENWASHING: Add specific milestone dates (Q1 2025, Q3 2026, etc.) with measurable deliverables`);
-        }
-        if (desc.includes('offset') || desc.includes('carbon credit')) {
-          greenwashingCorrections.push(`FIX GREENWASHING: Prioritize direct emissions reductions; offsets limited to <10% of total reduction`);
-        }
-        if (desc.includes('net zero') && !desc.includes('interim')) {
-          greenwashingCorrections.push(`FIX GREENWASHING: Include interim 2030 targets alongside net-zero commitment`);
-        }
-
-        // Generic correction based on recommendation
-        if (greenwashingCorrections.length === 0 || !greenwashingCorrections.some(c => c.includes(rec.substring(0, 30)))) {
-          greenwashingCorrections.push(`FIX GREENWASHING: ${rec}`);
-        }
-      });
-    }
-
-    // Combine all corrections and remove duplicates
-    const allCorrections = [...mandatoryCorrections, ...greenwashingCorrections];
-    const uniqueCorrections = [...new Set(allCorrections)];
-
-    const systemPrompt = `You are an expert in LMA Transition Loan documentation for African markets. Your PRIMARY GOAL is to create a draft that FIXES ALL FAILED LMA CHECKPOINTS from the assessment.
-
-## CRITICAL RULE: FIX ALL FAILURES
-The assessment identified specific gaps. Your draft MUST include corrective language for EVERY failed checkpoint. Do not just list the gaps - ACTIVELY FIX THEM by including the required phrases and data.
-
-## LMA SCORING ELEMENTS (5 Components, 20 pts each):
-
-1. STRATEGY ALIGNMENT (20 pts):
-   - MUST include: "Science Based Targets initiative (SBTi)"
-   - MUST include: "Paris Agreement 1.5°C pathway"
-   - MUST include: "published transition strategy" or "transition plan"
-
-2. USE OF PROCEEDS (20 pts):
-   - MUST include: Detailed project description (200+ words)
-   - MUST include: Project type specification
-   - MUST include: Clean transition terms (renewable, efficiency, etc.)
-
-3. TARGET AMBITION (20 pts):
-   - MUST include: Specific baseline & target emissions numbers
-   - MUST include: Reduction percentage (ideally 42%+ for full points)
-   - MUST include: Near-term target year (2030 or earlier)
-
-4. REPORTING & VERIFICATION (20 pts):
-   - MUST include: "third-party verification" by named auditor
-   - MUST include: Scope 3 emissions data (especially for agriculture/manufacturing)
-
-5. PROJECT SELECTION (20 pts):
-   - MUST include: Total project cost with debt/equity split
-   - MUST include: Equity contribution percentage (ideally 20%+)
-   - MUST include: Financing structure table
-
-## GREENWASHING AVOIDANCE:
-- Use "95%" not "100%" for targets
-- Use specific numbers, NEVER "To be established" or "TBD"
-- Include Scope 3 emissions data with specific numbers
-
-Output: Professional MARKDOWN document with tables and specific numbers that ADDRESSES ALL ASSESSMENT FAILURES.`;
-
-    const userPrompt = `Generate a comprehensive LMA-compliant Transition Loan Project Draft for:
-
-## PROJECT CONTEXT
-- **Project Name:** ${projectName}
-- **Country:** ${countryName}
-- **Sector:** ${sector.charAt(0).toUpperCase() + sector.slice(1)}
-- **Current Assessment Score:** ${overallScore}/100 (${eligibilityStatus})
-- **Target Year:** ${targetYear || 2030}
-- **Legal System:** ${countryInfo?.legalSystem?.replace(/_/g, ' ') || 'Common Law'}
-- **Currency:** ${countryInfo?.currency || 'USD'}
-- **Sovereign Rating:** ${countryInfo?.sovereignRating || 'Not rated'}
-- **NDC Target:** ${countryInfo?.ndcTarget || 'Ethiopia NDC: 68.8% reduction by 2030'}
-
-## PROJECT DESCRIPTION (FROM ORIGINAL DOCUMENT)
-${description ? `**Project Overview:** ${description}` : 'No detailed description provided'}
-${projectType ? `**Project Components:** ${projectType}` : ''}
-${transitionStrategy ? `**Transition Strategy:** ${transitionStrategy}` : ''}
-
-## MANDATORY LMA SCORING ELEMENTS (YOU MUST INCLUDE ALL):
-
-### A. STRATEGY ALIGNMENT REQUIREMENTS:
-Include these EXACT phrases in the document:
-- "The Borrower commits to the Science Based Targets initiative (SBTi) and will submit targets for validation at sciencebasedtargets.org"
-- "This project is aligned with the Paris Agreement 1.5°C pathway"
-- "The published transition strategy demonstrates..."
-
-### B. EMISSIONS DATA (FROM PROJECT DOCUMENT):
-**Data Source: ${emissionsDataSource}**
-
-**BASELINE EMISSIONS:**
-- Scope 1 Baseline: ${scope1Baseline.toLocaleString()} tCO2e/year
-- Scope 2 Baseline: ${scope2Baseline.toLocaleString()} tCO2e/year
-${scope3Baseline > 0 ? `- Scope 3 Baseline: ${scope3Baseline.toLocaleString()} tCO2e/year` : '- Scope 3 Baseline: Not measured (recommend conducting assessment)'}
-- **Total Baseline: ${totalBaseline.toLocaleString()} tCO2e/year**
-
-**TARGET EMISSIONS (${targetYear || 2030}):**
-- Scope 1 Target: ${scope1Target.toLocaleString()} tCO2e/year
-- Scope 2 Target: ${scope2Target.toLocaleString()} tCO2e/year
-${scope3Baseline > 0 ? `- Scope 3 Target: ${scope3Target.toLocaleString()} tCO2e/year` : ''}
-- **Total Target: ${totalTarget.toLocaleString()} tCO2e/year**
-- **Total Reduction: ${reductionPercent}%**
-
-### C. FINANCING STRUCTURE (FROM PROJECT DOCUMENT):
-${totalCost && totalCost > 0 ? '**Data Source: Original project document**' : '**Data Source: AI-estimated (no financial data in original)**'}
-- **Total Project Cost: USD ${actualTotalCost.toLocaleString()}**
-- Debt Component: USD ${actualDebtAmount.toLocaleString()} (${debtPercent}%)
-- **Equity Contribution: USD ${actualEquityAmount.toLocaleString()} (${equityPercent}%)**
-- Debt/Equity Ratio: ${debtPercent}:${equityPercent}
-
-## PRIMARY DFI TARGET
-${primaryDFI ? `
-- **Institution:** ${primaryDFI.fullName} (${primaryDFI.name})
-- **Match Score:** ${primaryDFI.matchScore}%
-- **Recommended Role:** ${primaryDFI.recommendedRole.replace(/_/g, ' ')}
-- **Match Reasons:** ${primaryDFI.matchReasons.join('; ')}
-- **Concerns to Address:** ${primaryDFI.concerns.join('; ') || 'None identified'}
-- **Climate Target:** ${primaryDFI.climateTarget || 'General climate mandate'}
-- **Estimated Ticket Size:** ${primaryDFI.estimatedSize ? `$${(primaryDFI.estimatedSize.min / 1_000_000).toFixed(0)}M - $${(primaryDFI.estimatedSize.max / 1_000_000).toFixed(0)}M` : 'TBD'}
-- **Special Programs:** ${primaryDFI.specialPrograms?.join(', ') || 'Standard programs'}
-` : 'No DFI match available - structure for general DFI engagement'}
-
-## RECOMMENDED KPIs - QUANTITATIVE REQUIREMENTS
-**NOTE: Use the sector baseline values from Section B above - NEVER use "To be established"**
-| KPI | Unit | Baseline | Target | Calculation Method | Source |
-|-----|------|----------|--------|-------------------|--------|
-${kpiRecommendations?.map(kpi => {
-  // Generate realistic baseline based on KPI type
-  let baseline = 'See Section B';
-  if (kpi.name.toLowerCase().includes('emission')) baseline = '1,165 tCO2e/year';
-  else if (kpi.name.toLowerCase().includes('renewable') || kpi.name.toLowerCase().includes('energy')) baseline = '0%';
-  else if (kpi.name.toLowerCase().includes('water')) baseline = '25 L/kg';
-  else if (kpi.name.toLowerCase().includes('employment') || kpi.name.toLowerCase().includes('job')) baseline = '20 jobs';
-  return `| ${kpi.name} | ${kpi.unit} | ${baseline} | ${kpi.suggestedTarget} | ${kpi.description} | ${kpi.source || 'LMA/ICMA'} |`;
-}).join('\n') || '| GHG Emissions | tCO2e/year | 1,165 | 642 | GHG Protocol | SBTi |'}
-
-**KPI Implementation Details:**
-${kpiRecommendations?.map((kpi, idx) => `
-${idx + 1}. **${kpi.name}**
-   - Measurement Unit: ${kpi.unit}
-   - Suggested Target: ${kpi.suggestedTarget}
-   - Rationale: ${kpi.rationale || 'Aligned with sector best practice'}
-   - Data Collection: Annual measurement with quarterly monitoring
-   - Verification: Third-party audited data required
-`).join('\n') || 'No KPIs specified'}
-
-## SUSTAINABILITY PERFORMANCE TARGETS (SPTs) - WITH MARGIN MECHANICS
-| SPT | Baseline Value | Target Value | Target Year | Margin Adjustment | Verification |
-|-----|---------------|--------------|-------------|-------------------|--------------|
-${sptRecommendations?.map(spt => `| ${spt.name} | ${spt.baseline} | ${spt.target} | ${targetYear || 2030} | ${spt.marginImpact} | ${spt.verificationMethod || 'Third-party'} |`).join('\n') || '| No SPTs specified | - | - | - | - | - |'}
-
-**SPT Calibration Details:**
-${sptRecommendations?.map((spt, idx) => `
-${idx + 1}. **${spt.name}**
-   - Baseline: ${spt.baseline}
-   - Target: ${spt.target}
-   - Margin Impact: ${spt.marginImpact} (applied annually based on achievement)
-   - Verification Method: ${spt.verificationMethod || 'Independent third-party verification'}
-   - Framework Source: ${spt.source || 'LMA Guidelines'}
-   - Cure Period: 60 Business Days from notification of non-achievement
-`).join('\n') || 'No SPTs specified'}
-
-## GREENWASHING RISK ASSESSMENT - DETAILED ANALYSIS
-| Assessment Metric | Value | Interpretation |
-|-------------------|-------|----------------|
-| Overall Risk Level | **${greenwashingRisk.level.toUpperCase()}** | ${greenwashingRisk.level === 'high' ? 'CRITICAL - Must address before DFI submission' : greenwashingRisk.level === 'medium' ? 'MODERATE - Address key concerns' : 'LOW - Well-positioned'} |
-| Risk Score | ${greenwashingRisk.score}/100 | ${greenwashingRisk.score >= 70 ? 'High concern' : greenwashingRisk.score >= 40 ? 'Moderate concern' : 'Acceptable'} |
-| Red Flags Detected | ${greenwashingRisk.redFlags.length} | ${greenwashingRisk.redFlags.length === 0 ? 'None identified' : 'Requires mitigation'} |
-| Positive Indicators | ${greenwashingRisk.positiveIndicators.length} | ${greenwashingRisk.positiveIndicators.length >= 4 ? 'Strong' : greenwashingRisk.positiveIndicators.length >= 2 ? 'Moderate' : 'Needs improvement'} |
-
-${greenwashingRisk.redFlags.length > 0 ? `
-### ⚠️ RED FLAGS REQUIRING IMMEDIATE CORRECTION IN DRAFT
-| # | Issue | Severity | MUST FIX IN DRAFT |
-|---|-------|----------|-------------------|
-${greenwashingRisk.redFlags.map((rf, idx) => `| ${idx + 1} | ${rf.description} | HIGH | ${rf.recommendation} |`).join('\n')}
-
-### GREENWASHING CORRECTIONS TO APPLY
-**Your draft MUST address each red flag above with corrective language:**
-${greenwashingCorrections.length > 0 ? greenwashingCorrections.map((corr, idx) => `${idx + 1}. ${corr}`).join('\n') : 'No specific greenwashing corrections needed.'}
-` : '### No Red Flags Detected\nProject demonstrates good transition credentials. Maintain current quality.'}
-
-${greenwashingRisk.positiveIndicators.length > 0 ? `
-### POSITIVE INDICATORS (Strengthening Factors)
-${greenwashingRisk.positiveIndicators.map((pi, idx) => `${idx + 1}. ✓ ${pi}`).join('\n')}
-` : ''}
-
-## LMA CHECKPOINT STATUS (CURRENT ASSESSMENT)
-| Component | Score | Status | Issues to Fix |
-|-----------|-------|--------|---------------|
-${lmaCheckpointStatus.map(comp => `| ${comp.component} | ${comp.score}/${comp.maxScore} | ${comp.failedItems.length === 0 ? '✓ PASS' : '✗ NEEDS FIX'} | ${comp.failedItems.map(f => f.issue).join('; ') || 'None'} |`).join('\n')}
-
-## ⚠️ CRITICAL CORRECTIONS REQUIRED (MUST INCLUDE IN DRAFT)
-**The following phrases/data MUST appear in the generated draft to fix failed checkpoints:**
-
-${uniqueCorrections.length > 0 ? uniqueCorrections.map((corr, idx) => `${idx + 1}. ${corr}`).join('\n') : 'No critical corrections needed - all checkpoints passed.'}
-
-## DETAILED GAPS WITH REQUIRED ACTIONS
-${gaps.map(gap => `
-### ${gap.component} - ${gap.status === 'partial' ? '⚠️ PARTIAL' : '❌ MISSING'}
-**Issue:** ${gap.issue}
-**REQUIRED ACTION:** ${gap.action || 'Include corrective language in the draft'}
-`).join('\n') || 'No significant gaps identified - maintain current compliance.'}
-
-## RELEVANT LMA CLAUSES TO IMPLEMENT
-| Clause ID | Type | Source | Relevance |
-|-----------|------|--------|-----------|
-${clauseDetails?.map(clause => `| ${clause.clauseId} | ${clause.type} | ${clause.source} | ${clause.relevanceScore || 'High'} |`).join('\n') || '| - | Standard LMA | LMA Templates | Standard |'}
-
-### CLAUSE IMPLEMENTATION DETAILS
-${clauseDetails?.map((clause, idx) => `
-#### ${idx + 1}. ${clause.type.toUpperCase()} (ID: ${clause.clauseId})
-**Source:** ${clause.source}
-
-**Clause Excerpt:**
-> ${clause.contentExcerpt}...
-
-**How to Apply:**
-${clause.howToApply}
-
-${clause.modifications ? `**Recommended Modifications for ${countryName}:**\n${clause.modifications}` : ''}
-
-${clause.keyConsiderations?.length ? `**Key Considerations:**\n${clause.keyConsiderations.map(kc => `- ${kc}`).join('\n')}` : ''}
-`).join('\n') || 'Standard LMA clauses apply - consult legal counsel for specific drafting.'}
-
-## RECOMMENDED NEXT STEPS
-${nextSteps.map((step, i) => `${i + 1}. ${step}`).join('\n')}
-
----
-
-## REQUIRED OUTPUT - 10 SECTIONS WITH TABLES
-
-**⚠️ CRITICAL: FIX ALL FAILED CHECKPOINTS**
-Your draft MUST include ALL items from "CRITICAL CORRECTIONS REQUIRED" section above. Each correction must appear verbatim or with equivalent language in the appropriate section.
-
-**MANDATORY PHRASES TO INCLUDE (for LMA compliance):**
-- "commits to the Science Based Targets initiative (SBTi)"
-- "Paris Agreement 1.5°C pathway"
-- "third-party verification" by [DNV/KPMG/EY]
-- "published transition strategy" or "transition plan approved by the Board"
-- "equity contribution of USD ${actualEquityAmount.toLocaleString()} (${equityPercent}%)"
-
-**MANDATORY DATA TO USE (from original project document):**
-- **TOTAL PROJECT BUDGET: USD ${actualTotalCost.toLocaleString()}** (must appear prominently in Executive Summary)
-- Scope 1 baseline: ${scope1Baseline.toLocaleString()} tCO2e/year → Target: ${scope1Target.toLocaleString()} tCO2e
-- Scope 2 baseline: ${scope2Baseline.toLocaleString()} tCO2e/year → Target: ${scope2Target.toLocaleString()} tCO2e
-${scope3Baseline > 0 ? `- Scope 3 baseline: ${scope3Baseline.toLocaleString()} tCO2e/year → Target: ${scope3Target.toLocaleString()} tCO2e` : `- Scope 3: Include estimate based on sector (agriculture/manufacturing = material)`}
-- Total: ${totalBaseline.toLocaleString()} → ${totalTarget.toLocaleString()} tCO2e (${reductionPercent}% reduction)
-- Financing: Total USD ${actualTotalCost.toLocaleString()} = Debt $${(actualDebtAmount / 1_000_000).toFixed(2)}M (${debtPercent}%) + Equity $${(actualEquityAmount / 1_000_000).toFixed(2)}M (${equityPercent}%)
-
-**SECTIONS:**
-1. EXECUTIVE SUMMARY (with metrics table including TOTAL BUDGET, SBTi/Paris statements)
-2. PROJECT DESCRIPTION (timeline table, NDC alignment)
-3. TRANSITION STRATEGY (emissions baseline table, milestones)
-4. FINANCING STRUCTURE (TOTAL BUDGET table, debt/equity split, KPI table, SPT margins)
-5. KEY TERMS AND CONDITIONS - **IMPORTANT: Include FULL clause text adapted for this project:**
-   - For each clause from the CLAUSE IMPLEMENTATION DETAILS above:
-     - Show the FULL clause text (not just ID)
-     - Replace placeholders [●] with project-specific values
-     - Add "Adapted for ${projectName}:" section showing how clause applies
-6. KPI FRAMEWORK (detailed KPI table with baselines)
-7. SPT MECHANISM (SPT table with annual targets)
-8. RISK MITIGATION (red flag mitigation table)
-9. DFI ROADMAP (documentation checklist for ${primaryDFI?.name || 'DFI'})
-10. ANNEXES (term sheet with TOTAL BUDGET, calculation formulas)
-
-**RULES:**
-- Use "95%" not "100%" for all targets
-- Never use "To be established" - use specific numbers
-- Include Scope 3 data (agriculture sector requirement)
-- In KEY TERMS section, write out FULL clause text adapted for this project (not just clause IDs)`;
-
-    // Log prompt lengths for debugging
-    const totalPromptLength = systemPrompt.length + userPrompt.length;
-    console.log(`[Draft Generator] System prompt: ${systemPrompt.length} chars, User prompt: ${userPrompt.length} chars, Total: ${totalPromptLength} chars`);
-
-    // Approximate token count (rough estimate: 4 chars = 1 token)
-    const estimatedTokens = Math.ceil(totalPromptLength / 4);
-    console.log(`[Draft Generator] Estimated input tokens: ${estimatedTokens}`);
-
-    // Warn if prompt is very long (Groq models have ~8k-32k context)
-    if (estimatedTokens > 20000) {
-      console.warn(`[Draft Generator] WARNING: Prompt may be too long (${estimatedTokens} estimated tokens)`);
-    }
-
-    const result = await callWithFallback(systemPrompt, userPrompt, 8000);
-
-    if (!result.success) {
-      console.error(`[Draft Generator] Failed: ${result.error}`);
+    // ========================================================================
+    // PHASE 1: ANALYZE
+    // ========================================================================
+    const phase1Result = await phase1Analyze(preparedData);
+    if (!phase1Result.success || !phase1Result.plan) {
       return NextResponse.json(
-        { success: false, error: result.error },
+        { success: false, error: `Phase 1 failed: ${phase1Result.error}` },
         { status: 500 }
       );
     }
 
+    // ========================================================================
+    // PHASE 2: GENERATE (parallel)
+    // ========================================================================
+    const [sections1to5Result, sections6to10Result] = await Promise.all([
+      phase2GenerateSections1to5(preparedData, phase1Result.plan),
+      phase2GenerateSections6to10(preparedData, phase1Result.plan),
+    ]);
+
+    if (!sections1to5Result.success) {
+      return NextResponse.json(
+        { success: false, error: `Phase 2A failed: ${sections1to5Result.error}` },
+        { status: 500 }
+      );
+    }
+
+    if (!sections6to10Result.success) {
+      return NextResponse.json(
+        { success: false, error: `Phase 2B failed: ${sections6to10Result.error}` },
+        { status: 500 }
+      );
+    }
+
+    // Combine sections
+    const combinedDraft = `# ${projectName}
+## LMA Transition Loan Project Draft
+
+**Generated:** ${new Date().toISOString().split('T')[0]}
+**Country:** ${countryName}
+**Sector:** ${sector.charAt(0).toUpperCase() + sector.slice(1)}
+**Target DFI:** ${preparedData.primaryDFI?.name || 'General'}
+
+---
+
+${sections1to5Result.content}
+
+---
+
+${sections6to10Result.content}
+`;
+
+    // ========================================================================
+    // PHASE 3: REVIEW
+    // ========================================================================
+    const reviewResult = await phase3Review(combinedDraft, preparedData);
+
+    const finalDraft = reviewResult.success ? reviewResult.content : combinedDraft;
+    const totalTime = Date.now() - startTime;
+
+    console.log(`[Draft Generator] Complete in ${totalTime}ms (3 phases)`);
+
     return NextResponse.json({
       success: true,
-      draft: result.content,
+      draft: finalDraft,
       metadata: {
         generatedAt: new Date().toISOString(),
-        targetDFI: primaryDFI?.name || 'General',
+        targetDFI: preparedData.primaryDFI?.name || 'General',
         projectName,
         sector,
         country: countryName,
+        generationTime: totalTime,
+        phases: {
+          analyze: 'complete',
+          generate: 'complete',
+          review: reviewResult.success ? 'complete' : 'skipped',
+        },
       },
     });
   } catch (error) {
