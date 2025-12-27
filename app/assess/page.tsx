@@ -48,6 +48,10 @@ interface ExtractedFields {
   targetScope1: number | null;
   targetScope2: number | null;
   targetScope3: number | null;
+  // NEW: Total emissions fields (captures all sources, not just Scope 1/2/3)
+  totalBaselineEmissions: number | null;
+  totalTargetEmissions: number | null;
+  statedReductionPercent: number | null;
   targetYear: number | null;
   verificationStatus: string;
 }
@@ -206,6 +210,10 @@ export default function AssessPage() {
           scope2: fields.targetScope2 || 0,
           scope3: fields.targetScope3 || 0,
         },
+        // NEW: Pass total emissions for accurate scoring (captures Water Treatment, Solar, etc.)
+        totalBaselineEmissions: fields.totalBaselineEmissions || undefined,
+        totalTargetEmissions: fields.totalTargetEmissions || undefined,
+        statedReductionPercent: fields.statedReductionPercent || undefined,
         targetYear: fields.targetYear || 2030,
         transitionStrategy: fields.transitionPlan || '',
         hasPublishedPlan: !!fields.transitionPlan,
@@ -578,7 +586,7 @@ export default function AssessPage() {
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Country *</label>
                     <select
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 bg-white focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
+                      className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-xl text-gray-900 bg-white focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%236b7280%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M8%2011L3%206h10l-5%205z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_12px_center] bg-no-repeat"
                       value={formData.country}
                       onChange={(e) => updateField('country', e.target.value)}
                     >
@@ -590,7 +598,7 @@ export default function AssessPage() {
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Sector *</label>
                     <select
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 bg-white focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
+                      className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-xl text-gray-900 bg-white focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%236b7280%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M8%2011L3%206h10l-5%205z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_12px_center] bg-no-repeat"
                       value={formData.sector}
                       onChange={(e) => updateField('sector', e.target.value)}
                     >
@@ -681,7 +689,66 @@ export default function AssessPage() {
             {/* Step 3: Emissions */}
             {step === 3 && (
               <div className="space-y-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-6">Emissions Data (tCO2e/year)</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Emissions Data (tCO2e/year)</h2>
+
+                {/* Guidance Box */}
+                <div className="bg-verdex-50 border border-verdex-200 rounded-2xl p-5 text-sm space-y-4">
+                  {/* Scope Definitions */}
+                  <div>
+                    <p className="font-semibold text-verdex-900 mb-3">What are emission scopes?</p>
+                    <div className="grid md:grid-cols-3 gap-3">
+                      <div className="bg-white/60 rounded-xl p-3">
+                        <p className="font-medium text-verdex-800 mb-1">Scope 1</p>
+                        <p className="text-verdex-700 text-xs">Direct emissions (fuel, vehicles)</p>
+                      </div>
+                      <div className="bg-white/60 rounded-xl p-3">
+                        <p className="font-medium text-verdex-800 mb-1">Scope 2</p>
+                        <p className="text-verdex-700 text-xs">Purchased electricity, heat, steam</p>
+                      </div>
+                      <div className="bg-white/60 rounded-xl p-3">
+                        <p className="font-medium text-verdex-800 mb-1">Scope 3</p>
+                        <p className="text-verdex-700 text-xs">Value chain emissions (optional)</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="border-t border-verdex-200"></div>
+
+                  {/* Example Case */}
+                  <div>
+                    <p className="font-semibold text-verdex-900 mb-1">Example: 30MW Coal-to-Gas Transition</p>
+                    <p className="text-xs text-verdex-600 mb-3">Typical ~50% emissions reduction</p>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-verdex-700">
+                            <th className="text-left font-medium py-2 pr-4"></th>
+                            <th className="text-right font-medium py-2 px-3 bg-verdex-100 rounded-l-lg">Baseline</th>
+                            <th className="text-right font-medium py-2 px-3 bg-white/80 rounded-r-lg">Target</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-verdex-800">
+                          <tr>
+                            <td className="py-1.5 pr-4 font-medium">Scope 1</td>
+                            <td className="text-right py-1.5 px-3 bg-verdex-100/50">150,000</td>
+                            <td className="text-right py-1.5 px-3 bg-white/50">75,000</td>
+                          </tr>
+                          <tr>
+                            <td className="py-1.5 pr-4 font-medium">Scope 2</td>
+                            <td className="text-right py-1.5 px-3 bg-verdex-100/50">25,000</td>
+                            <td className="text-right py-1.5 px-3 bg-white/50">10,000</td>
+                          </tr>
+                          <tr>
+                            <td className="py-1.5 pr-4 font-medium">Scope 3</td>
+                            <td className="text-right py-1.5 px-3 bg-verdex-100/50">50,000</td>
+                            <td className="text-right py-1.5 px-3 bg-white/50">30,000</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
 
                 <div>
                   <h3 className="font-semibold text-gray-800 mb-4">Current Baseline Emissions</h3>
@@ -693,8 +760,9 @@ export default function AssessPage() {
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
                         value={formData.currentScope1 || ''}
                         onChange={(e) => updateField('currentScope1', Number(e.target.value))}
-                        placeholder="Direct"
+                        placeholder="e.g., 150000"
                       />
+                      <p className="text-xs text-gray-400 mt-1">Direct emissions</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Scope 2</label>
@@ -703,8 +771,9 @@ export default function AssessPage() {
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
                         value={formData.currentScope2 || ''}
                         onChange={(e) => updateField('currentScope2', Number(e.target.value))}
-                        placeholder="Electricity"
+                        placeholder="e.g., 25000"
                       />
+                      <p className="text-xs text-gray-400 mt-1">Purchased electricity</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Scope 3</label>
@@ -713,8 +782,9 @@ export default function AssessPage() {
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
                         value={formData.currentScope3 || ''}
                         onChange={(e) => updateField('currentScope3', Number(e.target.value))}
-                        placeholder="Value chain"
+                        placeholder="e.g., 50000"
                       />
+                      <p className="text-xs text-gray-400 mt-1">Value chain (optional)</p>
                     </div>
                   </div>
                 </div>
@@ -729,6 +799,7 @@ export default function AssessPage() {
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
                         value={formData.targetScope1 || ''}
                         onChange={(e) => updateField('targetScope1', Number(e.target.value))}
+                        placeholder="e.g., 75000"
                       />
                     </div>
                     <div>
@@ -738,6 +809,7 @@ export default function AssessPage() {
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
                         value={formData.targetScope2 || ''}
                         onChange={(e) => updateField('targetScope2', Number(e.target.value))}
+                        placeholder="e.g., 10000"
                       />
                     </div>
                     <div>
@@ -747,6 +819,7 @@ export default function AssessPage() {
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
                         value={formData.targetScope3 || ''}
                         onChange={(e) => updateField('targetScope3', Number(e.target.value))}
+                        placeholder="e.g., 30000"
                       />
                     </div>
                   </div>
@@ -755,7 +828,7 @@ export default function AssessPage() {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Target Year</label>
                   <select
-                    className="w-48 px-4 py-3 border border-gray-300 rounded-xl text-gray-900 bg-white focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors"
+                    className="w-48 px-4 py-3 pr-10 border border-gray-300 rounded-xl text-gray-900 bg-white focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-colors appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%236b7280%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M8%2011L3%206h10l-5%205z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_12px_center] bg-no-repeat"
                     value={formData.targetYear}
                     onChange={(e) => updateField('targetYear', Number(e.target.value))}
                   >
@@ -778,7 +851,33 @@ export default function AssessPage() {
             {/* Step 4: Strategy */}
             {step === 4 && (
               <div className="space-y-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-6">Transition Strategy</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Transition Strategy</h2>
+
+                {/* Guidance Box */}
+                <div className="bg-verdex-50 border border-verdex-200 rounded-2xl p-5 text-sm space-y-4">
+                  <div>
+                    <p className="font-semibold text-verdex-900 mb-3">How to write a strong transition strategy</p>
+                    <div className="grid md:grid-cols-2 gap-3">
+                      <div className="bg-white/60 rounded-xl p-3">
+                        <p className="font-medium text-verdex-800 mb-2">Include these elements:</p>
+                        <ul className="text-verdex-700 text-xs space-y-1">
+                          <li>• Clear decarbonization pathway & timeline</li>
+                          <li>• Specific technologies to be deployed</li>
+                          <li>• Quantified emissions reduction targets</li>
+                          <li>• Alignment with Paris Agreement / NDCs</li>
+                        </ul>
+                      </div>
+                      <div className="bg-white/60 rounded-xl p-3">
+                        <p className="font-medium text-verdex-800 mb-2">Example:</p>
+                        <p className="text-verdex-700 text-xs italic">
+                          &quot;Phase 1 (2024-2026): Replace coal boilers with natural gas, reducing Scope 1 by 45%.
+                          Phase 2 (2027-2030): Install 20MW solar PV and battery storage, achieving 70% renewable energy mix.
+                          Aligned with Kenya&apos;s NDC target of 32% emissions reduction by 2030.&quot;
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Transition Strategy Description *</label>
@@ -790,30 +889,67 @@ export default function AssessPage() {
                   />
                 </div>
 
-                <div className="space-y-4">
-                  <label className="flex items-center space-x-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="w-5 h-5 text-verdex-600 rounded border-gray-300 focus:ring-verdex-500"
-                      checked={formData.hasPublishedPlan}
-                      onChange={(e) => updateField('hasPublishedPlan', e.target.checked)}
-                    />
-                    <span className="text-gray-700 font-medium">
-                      Entity has a published transition plan or climate strategy
-                    </span>
-                  </label>
+                {/* Yes/No Pills */}
+                <div className="space-y-5">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700 mb-3">
+                      Does the entity have a published transition plan or climate strategy?
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => updateField('hasPublishedPlan', true)}
+                        className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                          formData.hasPublishedPlan
+                            ? 'bg-verdex-600 text-white shadow-sm'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        Yes
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateField('hasPublishedPlan', false)}
+                        className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                          !formData.hasPublishedPlan
+                            ? 'bg-gray-700 text-white shadow-sm'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        No
+                      </button>
+                    </div>
+                  </div>
 
-                  <label className="flex items-center space-x-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="w-5 h-5 text-verdex-600 rounded border-gray-300 focus:ring-verdex-500"
-                      checked={formData.thirdPartyVerification}
-                      onChange={(e) => updateField('thirdPartyVerification', e.target.checked)}
-                    />
-                    <span className="text-gray-700 font-medium">
-                      Targets verified by third party (SBTi, auditor, or similar)
-                    </span>
-                  </label>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700 mb-3">
+                      Are targets verified by a third party (SBTi, auditor, or similar)?
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => updateField('thirdPartyVerification', true)}
+                        className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                          formData.thirdPartyVerification
+                            ? 'bg-verdex-600 text-white shadow-sm'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        Yes
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateField('thirdPartyVerification', false)}
+                        className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                          !formData.thirdPartyVerification
+                            ? 'bg-gray-700 text-white shadow-sm'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        No
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

@@ -292,7 +292,7 @@ export default function Home() {
                 <Link href="/assess" className="bg-verdex-700 hover:bg-verdex-800 text-white font-semibold px-8 py-4 rounded-xl shadow-verdex hover:shadow-verdex-lg transition-all duration-300 hover:scale-105 text-center">
                   Start Assessment
                 </Link>
-                <Link href="/search" className="border-2 border-gray-300 hover:border-verdex-600 text-gray-700 hover:text-verdex-700 font-semibold px-8 py-4 rounded-xl transition-all duration-300 text-center">
+                <Link href="/search" className="border-2 border-verdex-600/0 hover:border-verdex-600 hover:bg-verdex-600/10 text-verdex-700 hover:text-verdex-700 font-semibold px-8 py-4 rounded-xl transition-all duration-300 text-center">
                   Browse Clauses
                 </Link>
               </div>
@@ -364,7 +364,7 @@ export default function Home() {
                     <svg className="w-5 h-5 text-verdex-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span className="text-sm font-medium">LMA Verified</span>
+                    <span className="text-sm font-medium">LMA Compliance</span>
                   </div>
                 </div>
 
@@ -823,7 +823,7 @@ export default function Home() {
               href="/search"
               className="glass-dark text-white font-semibold px-8 py-4 rounded-xl hover:bg-verdex-700/80 transition-all duration-300"
             >
-              Explore LMA Clauses
+              Browse Clauses
             </Link>
           </div>
         </div>

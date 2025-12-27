@@ -32,6 +32,10 @@ async function extractProjectData(text: string): Promise<{
   targetScope1: number | null;
   targetScope2: number | null;
   targetScope3: number | null;
+  // NEW: Total emissions fields for documents that don't break down by scope
+  totalBaselineEmissions: number | null;
+  totalTargetEmissions: number | null;
+  statedReductionPercent: number | null;
   targetYear: number | null;
   verificationStatus: string;
 }> {
@@ -56,10 +60,19 @@ async function extractProjectData(text: string): Promise<{
 15. targetScope1: Target Scope 1 emissions in tCO2e/year (number only, or null)
 16. targetScope2: Target Scope 2 emissions in tCO2e/year (number only, or null)
 17. targetScope3: Target Scope 3 emissions in tCO2e/year (number only, or null)
-18. targetYear: Target year for emissions reduction (e.g., 2030, or null if not mentioned)
-19. verificationStatus: Any third-party verification or certification mentioned
+18. totalBaselineEmissions: TOTAL baseline/current emissions in tCO2e/year (sum all sources if itemized, number only)
+19. totalTargetEmissions: TOTAL target emissions in tCO2e/year (sum all sources if itemized, number only)
+20. statedReductionPercent: The stated emissions reduction percentage if mentioned (e.g., "28% reduction" = 28)
+21. targetYear: Target year for emissions reduction (e.g., 2030, or null if not mentioned)
+22. verificationStatus: Any third-party verification or certification mentioned
 
-IMPORTANT: For emissions fields, look for numbers like "12,500 tCO2e" or "current emissions: 15,000 tonnes CO2".
+IMPORTANT EMISSIONS EXTRACTION:
+- For emissions fields, look for numbers like "12,500 tCO2e" or "current emissions: 15,000 tonnes CO2"
+- CRITICAL: totalBaselineEmissions should be the TOTAL of ALL emission sources (including Water Treatment, Solar Avoided, etc.)
+- If the document shows an emissions table, SUM all baseline sources for totalBaselineEmissions and all target sources for totalTargetEmissions
+- For statedReductionPercent, look for phrases like "28% reduction", "reduce by 30%", "achieve 42% decrease"
+- If reduction % is not stated but totals are given, calculate: ((baseline - target) / baseline) * 100
+
 For financing, convert "USD 25 million" to 25000000.
 
 Document text:
@@ -84,6 +97,9 @@ Respond in JSON format only:
   "targetScope1": null,
   "targetScope2": null,
   "targetScope3": null,
+  "totalBaselineEmissions": null,
+  "totalTargetEmissions": null,
+  "statedReductionPercent": null,
   "targetYear": null,
   "verificationStatus": ""
 }`;
@@ -123,6 +139,9 @@ Respond in JSON format only:
       targetScope1: null,
       targetScope2: null,
       targetScope3: null,
+      totalBaselineEmissions: null,
+      totalTargetEmissions: null,
+      statedReductionPercent: null,
       targetYear: null,
       verificationStatus: '',
     };

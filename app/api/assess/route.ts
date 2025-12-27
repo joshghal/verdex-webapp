@@ -30,6 +30,10 @@ export async function POST(request: NextRequest) {
       currentEmissions: body.currentEmissions || { scope1: 0, scope2: 0 },
       targetEmissions: body.targetEmissions || { scope1: 0, scope2: 0 },
       targetYear: body.targetYear || 2030,
+      // NEW: Total emissions fields (preferred when available)
+      totalBaselineEmissions: body.totalBaselineEmissions || undefined,
+      totalTargetEmissions: body.totalTargetEmissions || undefined,
+      statedReductionPercent: body.statedReductionPercent || undefined,
       transitionStrategy: body.transitionStrategy || '',
       hasPublishedPlan: body.hasPublishedPlan || false,
       thirdPartyVerification: body.thirdPartyVerification || false,
@@ -107,6 +111,22 @@ export async function POST(request: NextRequest) {
       country: project.country,
       countryName: countryProfile?.name || project.country,
       sector: project.sector,
+      targetYear: project.targetYear,
+      // Include original project data for draft generation
+      description: project.description,
+      projectType: project.projectType,
+      totalCost: project.totalCost,
+      debtAmount: project.debtAmount,
+      equityAmount: project.equityAmount,
+      currentEmissions: project.currentEmissions,
+      targetEmissions: project.targetEmissions,
+      // NEW: Total emissions fields for accurate draft generation
+      totalBaselineEmissions: project.totalBaselineEmissions,
+      totalTargetEmissions: project.totalTargetEmissions,
+      statedReductionPercent: project.statedReductionPercent,
+      transitionStrategy: project.transitionStrategy,
+      hasPublishedPlan: project.hasPublishedPlan,
+      thirdPartyVerification: project.thirdPartyVerification,
       eligibilityStatus,
       ineligibilityReasons,
       overallScore: adjustedScore, // Now reflects greenwashing penalty
@@ -193,8 +213,10 @@ function calculateLMAScore(project: ProjectInput): {
     });
   }
 
-  if (project.transitionStrategy.toLowerCase().includes('sbti') ||
-      project.transitionStrategy.toLowerCase().includes('science-based')) {
+  // Check both transitionStrategy AND description for SBTi keywords
+  const fullText = (project.transitionStrategy + ' ' + project.description).toLowerCase();
+
+  if (fullText.includes('sbti') || fullText.includes('science-based') || fullText.includes('science based targets')) {
     strategyScore += 5;
     strategyFeedback.push({ status: 'met', description: 'References science-based targets (SBTi)' });
   } else {
@@ -205,8 +227,7 @@ function calculateLMAScore(project: ProjectInput): {
     });
   }
 
-  if (project.transitionStrategy.toLowerCase().includes('paris') ||
-      project.transitionStrategy.toLowerCase().includes('1.5')) {
+  if (fullText.includes('paris') || fullText.includes('1.5') || fullText.includes('1.5°c') || fullText.includes('ndc')) {
     strategyScore += 5;
     strategyFeedback.push({ status: 'met', description: 'Paris Agreement 1.5°C alignment referenced' });
   } else {
@@ -263,12 +284,37 @@ function calculateLMAScore(project: ProjectInput): {
   let ambitionScore = 0;
   const ambitionFeedback: LMAFeedbackItem[] = [];
 
-  const totalCurrent = project.currentEmissions.scope1 + project.currentEmissions.scope2;
-  const totalTarget = project.targetEmissions.scope1 + project.targetEmissions.scope2;
+  // PRIORITY: Use total emissions if available (captures all sources incl. Water Treatment, Solar, etc.)
+  // Otherwise fall back to Scope 1+2 sum
+  let totalCurrent: number;
+  let totalTarget: number;
+  let emissionsSource: string;
 
-  if (totalCurrent > 0 && totalTarget > 0) {
-    const reduction = ((totalCurrent - totalTarget) / totalCurrent) * 100;
+  if (project.totalBaselineEmissions && project.totalBaselineEmissions > 0 &&
+      project.totalTargetEmissions && project.totalTargetEmissions > 0) {
+    // Use document's stated total emissions (most accurate)
+    totalCurrent = project.totalBaselineEmissions;
+    totalTarget = project.totalTargetEmissions;
+    emissionsSource = 'document totals';
+  } else {
+    // Fall back to Scope 1+2 calculation
+    totalCurrent = project.currentEmissions.scope1 + project.currentEmissions.scope2;
+    totalTarget = project.targetEmissions.scope1 + project.targetEmissions.scope2;
+    emissionsSource = 'Scope 1+2';
+  }
 
+  // Also check if document stated a reduction percentage directly
+  let reduction: number | null = null;
+
+  if (project.statedReductionPercent && project.statedReductionPercent > 0) {
+    // Use document's stated reduction (most authoritative)
+    reduction = project.statedReductionPercent;
+  } else if (totalCurrent > 0 && totalTarget > 0) {
+    // Calculate from totals
+    reduction = ((totalCurrent - totalTarget) / totalCurrent) * 100;
+  }
+
+  if (reduction !== null && reduction > 0) {
     if (reduction >= 42) {
       ambitionScore += 15;
       ambitionFeedback.push({ status: 'met', description: `Strong reduction target: ${reduction.toFixed(1)}% (exceeds 1.5°C pathway requirement of 42%)` });
@@ -349,9 +395,19 @@ function calculateLMAScore(project: ProjectInput): {
   let selectionScore = 0;
   const selectionFeedback: LMAFeedbackItem[] = [];
 
-  if (project.sector === 'energy') {
+  // Recognize high-priority transition sectors
+  const highPrioritySectors = ['energy', 'agriculture', 'transport', 'manufacturing'];
+  const sectorLower = project.sector.toLowerCase();
+
+  if (sectorLower === 'energy') {
     selectionScore += 10;
     selectionFeedback.push({ status: 'met', description: 'Energy sector - high transition relevance and DFI priority' });
+  } else if (sectorLower === 'agriculture') {
+    selectionScore += 10;
+    selectionFeedback.push({ status: 'met', description: 'Agriculture sector - key for climate adaptation and sustainable food systems' });
+  } else if (highPrioritySectors.includes(sectorLower)) {
+    selectionScore += 8;
+    selectionFeedback.push({ status: 'met', description: `${project.sector} sector - recognized transition priority` });
   } else {
     selectionScore += 5;
     selectionFeedback.push({

@@ -59,6 +59,8 @@ const CLAUSE_TYPE_LABELS: Record<string, string> = {
   general: 'General',
 };
 
+type SearchMode = 'keyword' | 'clauseId';
+
 export default function SearchPage() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState('');
@@ -71,7 +73,9 @@ export default function SearchPage() {
   const [selectedClauseType, setSelectedClauseType] = useState<string | null>(null);
   const [selectedDocType, setSelectedDocType] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedId, setCopiedId] = useState(false);
   const [initialSearchDone, setInitialSearchDone] = useState(false);
+  const [searchMode, setSearchMode] = useState<SearchMode>('keyword');
 
   // Fetch index stats on mount
   useEffect(() => {
@@ -92,7 +96,7 @@ export default function SearchPage() {
     }
   }, [searchParams, initialSearchDone]);
 
-  const performSearch = async (searchQuery: string) => {
+  const performSearch = async (searchQuery: string, mode: SearchMode = searchMode) => {
     if (!searchQuery.trim()) return;
 
     setLoading(true);
@@ -101,22 +105,30 @@ export default function SearchPage() {
 
     try {
       const filters: any = {};
-      if (selectedClauseType) filters.clauseType = selectedClauseType;
-      if (selectedDocType) filters.documentType = selectedDocType;
+      if (mode === 'keyword') {
+        if (selectedClauseType) filters.clauseType = selectedClauseType;
+        if (selectedDocType) filters.documentType = selectedDocType;
+      }
 
       const response = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: searchQuery,
-          limit: 15,
+          limit: mode === 'clauseId' ? 1 : 15,
           filters: Object.keys(filters).length > 0 ? filters : undefined,
+          searchMode: mode,
         }),
       });
 
       const data: SearchResponse = await response.json();
       setResults(data.results || []);
       setSearchSource(data.source);
+
+      // Auto-select the clause if it's an ID search with results
+      if (mode === 'clauseId' && data.results?.length > 0) {
+        setSelectedClause(data.results[0]);
+      }
     } catch (error) {
       console.error('Search failed:', error);
       setResults([]);
@@ -170,7 +182,7 @@ export default function SearchPage() {
               </span>
             )}
           </div>
-          <h1 className="text-4xl md:text-5xl font-display font-medium text-gray-900 mb-4">Search LMA Clauses</h1>
+          <h1 className="text-4xl md:text-5xl font-display font-medium text-gray-900 mb-4">Search Clauses</h1>
           <p className="text-lg text-gray-600 max-w-xl mx-auto">
             Search LMA templates, Paris Agreement, and SBTi Net-Zero standards for transition finance
           </p>
@@ -178,11 +190,51 @@ export default function SearchPage() {
 
         {/* Search Input */}
         <div className="glass-card rounded-3xl p-6 mb-6">
+          {/* Search Mode Toggle */}
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-sm text-gray-500">Search by:</span>
+            <div className="inline-flex rounded-xl bg-gray-100 p-1">
+              <button
+                onClick={() => setSearchMode('keyword')}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                  searchMode === 'keyword'
+                    ? 'bg-white text-verdex-700 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  Keyword
+                </span>
+              </button>
+              <button
+                onClick={() => setSearchMode('clauseId')}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                  searchMode === 'clauseId'
+                    ? 'bg-white text-verdex-700 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                  </svg>
+                  Clause ID
+                </span>
+              </button>
+            </div>
+          </div>
+
           <div className="flex gap-4">
             <input
               type="text"
-              className="flex-1 px-5 py-4 bg-white/80 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-all"
-              placeholder="Search for clauses (e.g., 'margin ratchet', 'SOFR interest calculation')"
+              className={`flex-1 px-5 py-4 bg-white/80 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-verdex-500 focus:border-verdex-500 transition-all ${searchMode === 'clauseId' ? 'font-mono' : ''}`}
+              placeholder={searchMode === 'keyword'
+                ? "Search for clauses (e.g., 'margin ratchet', 'SOFR interest calculation')"
+                : "Enter clause ID (e.g., 'clause_abc123xyz')"
+              }
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
@@ -192,51 +244,62 @@ export default function SearchPage() {
               disabled={loading}
               className="bg-verdex-700 hover:bg-verdex-800 text-white font-semibold px-8 py-4 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              {loading ? 'Searching...' : 'Search'}
+              {loading ? 'Searching...' : searchMode === 'clauseId' ? 'Find' : 'Search'}
             </button>
           </div>
 
-          {/* Filters */}
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <div className="flex flex-wrap items-center gap-2 mb-3">
-              <span className="text-sm text-gray-500">Filter by type:</span>
-              {['margin_ratchet', 'interest', 'facility_terms', 'verification', 'reporting_covenant', 'conditions_precedent'].map((type) => (
-                <button
-                  key={type}
-                  onClick={() => setSelectedClauseType(selectedClauseType === type ? null : type)}
-                  className={`text-xs px-3 py-1.5 rounded-full transition-all ${
-                    selectedClauseType === type
-                      ? 'bg-verdex-600 text-white'
-                      : 'bg-white/60 text-gray-600 hover:bg-verdex-50 hover:text-verdex-700 border border-gray-200'
-                  }`}
-                >
-                  {CLAUSE_TYPE_LABELS[type] || type.replace(/_/g, ' ')}
-                </button>
-              ))}
-              {(selectedClauseType || selectedDocType) && (
-                <button
-                  onClick={clearFilters}
-                  className="text-xs px-3 py-1.5 text-gray-500 hover:text-gray-700"
-                >
-                  Clear filters
-                </button>
-              )}
-            </div>
+          {/* Filters - only show for keyword search */}
+          {searchMode === 'keyword' && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <span className="text-sm text-gray-500">Filter by type:</span>
+                {['margin_ratchet', 'interest', 'facility_terms', 'verification', 'reporting_covenant', 'conditions_precedent'].map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setSelectedClauseType(selectedClauseType === type ? null : type)}
+                    className={`text-xs px-3 py-1.5 rounded-full transition-all ${
+                      selectedClauseType === type
+                        ? 'bg-verdex-600 text-white'
+                        : 'bg-white/60 text-gray-600 hover:bg-verdex-50 hover:text-verdex-700 border border-gray-200'
+                    }`}
+                  >
+                    {CLAUSE_TYPE_LABELS[type] || type.replace(/_/g, ' ')}
+                  </button>
+                ))}
+                {(selectedClauseType || selectedDocType) && (
+                  <button
+                    onClick={clearFilters}
+                    className="text-xs px-3 py-1.5 text-gray-500 hover:text-gray-700"
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
 
-            {/* Quick Search Tags */}
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm text-gray-500">Quick searches:</span>
-              {QUICK_SEARCHES.map((q) => (
-                <button
-                  key={q}
-                  onClick={() => handleQuickSearch(q)}
-                  className="text-xs px-3 py-1.5 bg-white/60 hover:bg-white text-gray-600 rounded-full transition-all border border-gray-200 hover:border-verdex-300 hover:text-verdex-700"
-                >
-                  {q}
-                </button>
-              ))}
+              {/* Quick Search Tags */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-gray-500">Quick searches:</span>
+                {QUICK_SEARCHES.map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => handleQuickSearch(q)}
+                    className="text-xs px-3 py-1.5 bg-white/60 hover:bg-white text-gray-600 rounded-full transition-all border border-gray-200 hover:border-verdex-300 hover:text-verdex-700"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Clause ID help text */}
+          {searchMode === 'clauseId' && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <p className="text-sm text-gray-500">
+                <span className="font-medium">Tip:</span> You can find clause IDs in exported PDF reports. Paste the full ID to view the complete clause text.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Results */}
@@ -364,11 +427,46 @@ export default function SearchPage() {
                   {formatClauseContent(selectedClause.content)}
                 </div>
 
-                {selectedClause.metadata.source && (
-                  <p className="text-xs text-gray-500 mt-4">
-                    <span className="font-medium">Source:</span> {selectedClause.metadata.source}
-                  </p>
-                )}
+                {/* Source & Clause ID */}
+                <div className="mt-4 bg-gray-50 rounded-xl p-3 space-y-2">
+                  {selectedClause.metadata.source && (
+                    <div className="flex items-start gap-2">
+                      <span className="text-xs font-medium text-gray-500 w-16 flex-shrink-0">Source</span>
+                      <span className="text-xs text-gray-700 break-words">{selectedClause.metadata.source}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-500 w-16 flex-shrink-0">Clause ID</span>
+                    <span className="text-xs text-gray-700 font-mono truncate flex-1" title={selectedClause.id}>
+                      {selectedClause.id.length > 35 ? `${selectedClause.id.substring(0, 35)}...` : selectedClause.id}
+                    </span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedClause.id);
+                        setCopiedId(true);
+                        setTimeout(() => setCopiedId(false), 2000);
+                      }}
+                      className={`text-xs transition-colors flex items-center gap-1 flex-shrink-0 px-2 py-1 rounded-lg ${copiedId ? 'text-verdex-600 bg-verdex-50' : 'text-gray-400 hover:text-verdex-600 hover:bg-verdex-50'}`}
+                      title="Copy clause ID"
+                    >
+                      {copiedId ? (
+                        <>
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Copied
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                          Copy
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="glass-card rounded-3xl text-center py-16">

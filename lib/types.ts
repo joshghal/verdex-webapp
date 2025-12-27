@@ -58,6 +58,12 @@ export interface ProjectInput {
   targetEmissions: EmissionsData;
   targetYear: number;
 
+  // Total emissions (preferred over scope breakdown when available)
+  // These capture all emission sources including those that don't fit Scope 1/2/3 categories
+  totalBaselineEmissions?: number;  // Total baseline tCO2e/year
+  totalTargetEmissions?: number;    // Total target tCO2e/year
+  statedReductionPercent?: number;  // Document's stated reduction %
+
   // Strategy
   transitionStrategy: string;
   hasPublishedPlan: boolean;

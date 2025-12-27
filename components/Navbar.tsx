@@ -61,7 +61,6 @@ export default function Navbar() {
                 {/* Brand Name */}
                 <div className="flex flex-col">
                   <span className="font-display font-medium text-xl tracking-tight text-verdex-900">Verdex</span>
-                  <span className="text-[10px] font-medium tracking-wider uppercase -mt-1 text-verdex-600 hidden sm:block">Green Finance Verification</span>
                 </div>
               </Link>
 

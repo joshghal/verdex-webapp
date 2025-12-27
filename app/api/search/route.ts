@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { searchDocuments, getIndexStats } from '@/lib/pinecone';
+import { searchDocuments, getIndexStats, getIndex } from '@/lib/pinecone';
 import { generateEmbedding } from '@/lib/embeddings';
 
 // Sample clause templates for fallback when Pinecone is empty
@@ -179,7 +179,7 @@ const DOCUMENT_TYPES = [
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { query, filters, limit = 10 } = body;
+    const { query, filters, limit = 10, searchMode = 'keyword' } = body;
 
     if (!query) {
       return NextResponse.json(
@@ -191,6 +191,61 @@ export async function POST(request: NextRequest) {
     let results: any[] = [];
     let source = 'sample_templates';
 
+    // Handle clause ID search
+    if (searchMode === 'clauseId') {
+      try {
+        const index = getIndex();
+        const fetchResult = await index.fetch([query.trim()]);
+
+        if (fetchResult.records && fetchResult.records[query.trim()]) {
+          const record = fetchResult.records[query.trim()];
+          results = [{
+            id: record.id,
+            score: 1,
+            content: (record.metadata?.content as string) || '',
+            metadata: {
+              source: record.metadata?.source as string,
+              clauseType: record.metadata?.clauseType as string,
+              documentType: record.metadata?.documentType as string,
+              section: record.metadata?.section as string,
+            },
+          }];
+          source = 'pinecone';
+        }
+      } catch (error) {
+        console.log('Pinecone fetch by ID failed:', error);
+      }
+
+      // Fallback to sample clauses for ID search
+      if (results.length === 0) {
+        const sampleMatch = SAMPLE_CLAUSES.find(c => c.id === query.trim());
+        if (sampleMatch) {
+          results = [{
+            id: sampleMatch.id,
+            score: 1,
+            content: sampleMatch.content,
+            metadata: sampleMatch.metadata,
+          }];
+        }
+      }
+
+      return NextResponse.json({
+        results,
+        totalFound: results.length,
+        query,
+        source,
+        searchMode: 'clauseId',
+        filters: {
+          applied: null,
+          available: {
+            clauseTypes: CLAUSE_TYPES,
+            documentTypes: DOCUMENT_TYPES,
+          },
+        },
+      });
+    }
+
+    // Regular keyword/semantic search
     try {
       // Check if Pinecone has data
       const stats = await getIndexStats();
