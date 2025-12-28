@@ -65,18 +65,34 @@ export async function POST(request: NextRequest) {
     const kpiRecommendations = await generateKPIRecommendationsAI(project);
 
     // Apply greenwashing penalty to overall score
-    // Greenwashing risk should REDUCE the score, not be a separate metric
+    // Each individual red flag directly subtracts from the score based on severity
     let adjustedScore = lmaScore.overall;
     let greenwashingPenalty = 0;
 
-    if (greenwashingRisk.overallRisk === 'high') {
-      // High risk: heavy penalty (30-50 points based on risk score)
-      greenwashingPenalty = Math.round(30 + (greenwashingRisk.riskScore / 100) * 20);
-    } else if (greenwashingRisk.overallRisk === 'medium') {
-      // Medium risk: moderate penalty (10-25 points)
-      greenwashingPenalty = Math.round(10 + (greenwashingRisk.riskScore / 100) * 15);
+    // Calculate penalty from individual red flags - more sensitive approach
+    for (const flag of greenwashingRisk.redFlags) {
+      switch (flag.severity) {
+        case 'high':
+          greenwashingPenalty += 10; // High severity: -10 points per flag
+          break;
+        case 'medium':
+          greenwashingPenalty += 6; // Medium severity: -6 points per flag
+          break;
+        case 'low':
+          greenwashingPenalty += 3; // Low severity: -3 points per flag
+          break;
+      }
     }
-    // Low risk: no penalty
+
+    // Add base penalty for overall risk level (cumulative effect)
+    if (greenwashingRisk.overallRisk === 'high') {
+      greenwashingPenalty += 10; // Additional base penalty for high risk
+    } else if (greenwashingRisk.overallRisk === 'medium') {
+      greenwashingPenalty += 5; // Additional base penalty for medium risk
+    }
+
+    // Cap penalty at 60 points max to avoid total zeroing
+    greenwashingPenalty = Math.min(60, greenwashingPenalty);
 
     adjustedScore = Math.max(0, Math.min(100, lmaScore.overall - greenwashingPenalty));
 

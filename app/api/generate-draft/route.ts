@@ -3,8 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
-// Current year - ALL dates in draft must be >= this
+// Current year and quarter - ALL dates in draft must be >= this
 const CURRENT_YEAR = new Date().getFullYear();
+const CURRENT_QUARTER = Math.ceil((new Date().getMonth() + 1) / 3); // Q1=1, Q2=2, Q3=3, Q4=4
 
 // Draft-specific API keys from environment variables (with fallback)
 const DRAFT_API_KEYS = [
@@ -240,6 +241,8 @@ async function phase1Analyze(data: PreparedData): Promise<{
 CRITICAL RULES:
 - Output ONLY valid JSON, no markdown or explanation
 - All years must be >= ${CURRENT_YEAR} (current year)
+- Current quarter is Q${CURRENT_QUARTER} ${CURRENT_YEAR}. Do NOT plan for Q1-Q${CURRENT_QUARTER - 1} of ${CURRENT_YEAR} - those quarters are in the past!
+- For ${CURRENT_YEAR}, only use Q${CURRENT_QUARTER} or later. For future years, any quarter is acceptable.
 - Never suggest past dates like 2023 or 2024
 
 Output this exact JSON structure:
@@ -280,7 +283,8 @@ EXACT DATA TO USE:
 - Debt: USD ${data.debtAmount.toLocaleString()} (${data.debtPercent}%)
 - Equity: USD ${data.equityAmount.toLocaleString()} (${data.equityPercent}%)
 
-YEAR CONSTRAINT: All dates must be ${CURRENT_YEAR} or later. Target year: ${data.targetYear}
+DATE CONSTRAINT: All dates must be ${CURRENT_YEAR} or later. Target year: ${data.targetYear}
+QUARTER CONSTRAINT: Current quarter is Q${CURRENT_QUARTER} ${CURRENT_YEAR}. For current year, only Q${CURRENT_QUARTER}-Q4 are valid. Past quarters (Q1-Q${CURRENT_QUARTER - 1} of ${CURRENT_YEAR}) cannot be used.
 
 Create JSON plan with keywords for Project Description and Transition Strategy sections.`;
 
@@ -335,10 +339,11 @@ async function phase2GenerateSections1to5(
 
 ABSOLUTE RULES:
 1. ALL years must be ${CURRENT_YEAR} or later. NEVER use ${CURRENT_YEAR - 1}, ${CURRENT_YEAR - 2}, or earlier years.
-2. Use "95%" not "100%" for any percentage targets
-3. Never say "To be established" or "TBD" - always use specific numbers provided
-4. Be factual and measured - avoid superlatives like "revolutionary", "unprecedented", "transformative"
-5. Use realistic language: "improved" not "revolutionary", "significant" not "unprecedented"
+2. Current quarter is Q${CURRENT_QUARTER} ${CURRENT_YEAR}. For ${CURRENT_YEAR}, only use Q${CURRENT_QUARTER}, Q${Math.min(CURRENT_QUARTER + 1, 4)}, Q${Math.min(CURRENT_QUARTER + 2, 4)}, Q4. NEVER use past quarters (Q1-Q${CURRENT_QUARTER - 1} of ${CURRENT_YEAR}).
+3. Use "95%" not "100%" for any percentage targets
+4. Never say "To be established" or "TBD" - always use specific numbers provided
+5. Be factual and measured - avoid superlatives like "revolutionary", "unprecedented", "transformative"
+6. Use realistic language: "improved" not "revolutionary", "significant" not "unprecedented"
 
 KEYWORDS TO INCLUDE:
 - In Project Description: ${plan.keywordsRequired.projectDescription?.join(', ') || 'SBTi, Paris Agreement, NDC'}
@@ -386,7 +391,7 @@ ${data.primaryDFI ? `${data.primaryDFI.fullName} - ${data.primaryDFI.recommended
 ### 2. PROJECT DESCRIPTION
 **MUST include these keywords:** SBTi, Science Based Targets, Paris Agreement, NDC
 - Detailed description of project activities
-- Timeline table (all dates ${CURRENT_YEAR}+)
+- Timeline table (all dates ${CURRENT_YEAR}+, starting from Q${CURRENT_QUARTER} ${CURRENT_YEAR} at earliest)
 - Environmental outcomes expected
 
 ### 3. TRANSITION STRATEGY
@@ -401,9 +406,18 @@ ${data.primaryDFI ? `${data.primaryDFI.fullName} - ${data.primaryDFI.recommended
 - DFI engagement strategy
 
 ### 5. KEY TERMS AND CONDITIONS
-- Standard LMA terms
-- Margin ratchet mechanism (if applicable)
-- Reporting requirements
+
+**CRITICAL FORMATTING FOR SECTION 5:**
+- Each clause/term MUST be a bullet point (•)
+- Key terms/keywords within each clause MUST be **bolded**
+- Structure each bullet as: "**Key Term Name**: Description of the term and conditions..."
+- Examples of keywords to bold: **Margin Ratchet**, **Reporting Covenant**, **KPI Definitions**, **Default Provisions**, **Interest Rate**, **Repayment Schedule**, **Sustainability Compliance Certificate**, **Third-Party Verification**
+
+Include these elements:
+- **Standard LMA Terms**: repayment schedules, interest rates, default provisions
+- **Margin Ratchet Mechanism**: tied to KPI achievement (if applicable)
+- **Reporting Covenant**: annual sustainability compliance requirements
+- **KPI Definitions**: specific metrics and measurement methods
 
 ${data.clauses.length > 0 ? `
 ## RELEVANT LMA CLAUSES TO ADAPT (from assessment):
@@ -415,9 +429,14 @@ How to Apply: ${c.howToApply}
 
 For Section 5 (KEY TERMS AND CONDITIONS):
 - Adapt each relevant clause above for this specific project
+- Format as bullet points (•) with **bolded** key terms
 - Include margin ratchet tied to the project's SPTs
 - Include reporting covenant requirements
 - Reference the clause sources (e.g., "per LMA Sustainability-Linked Loan Principles")
+
+Example format for Section 5:
+• **Margin Ratchet Mechanism**: A reduction in the interest margin will be triggered by achieving [specific KPI targets], as verified by third-party reports. The **margin reduction** will be [X-Y] basis points per year for each KPI met.
+• **Reporting Covenant**: The borrower will prepare an annual **Sustainability Compliance Certificate**, verifying performance against KPIs, including [list metrics]. The report will be audited by a qualified sustainability auditor, as per **LMA Sustainability-Linked Loan Principles**.
 ` : ''}`;
 
   console.log('[Phase 2A: GENERATE 1-5] Starting...');
@@ -437,13 +456,17 @@ async function phase2GenerateSections6to10(
 
 ABSOLUTE RULES:
 1. ALL years must be ${CURRENT_YEAR} or later. NEVER use ${CURRENT_YEAR - 1}, ${CURRENT_YEAR - 2}, or earlier.
-2. Use "95%" not "100%" for percentage targets
-3. Never say "To be established" - use specific numbers
-4. Be factual - avoid superlatives like "revolutionary", "unprecedented"
-5. All KPI baselines must have actual numbers, not placeholders
+2. Current quarter is Q${CURRENT_QUARTER} ${CURRENT_YEAR}. For ${CURRENT_YEAR}, only use Q${CURRENT_QUARTER}-Q4. NEVER use past quarters (Q1-Q${CURRENT_QUARTER - 1} of ${CURRENT_YEAR}).
+3. Use "95%" not "100%" for percentage targets
+4. Never say "To be established" - use specific numbers
+5. Be factual - avoid superlatives like "revolutionary", "unprecedented"
+6. All KPI baselines must have actual numbers, not placeholders
 
-GREENWASHING FIXES TO APPLY:
+GREENWASHING FIXES TO APPLY (CRITICAL):
 ${plan.greenwashingFixes?.join('\n') || 'None'}
+
+IMPORTANT: Section 8 (Risk Mitigation) MUST provide concrete, actionable solutions for EVERY red flag.
+Do NOT just list the issues - provide SPECIFIC mitigation strategies with timelines.
 
 Output: Clean markdown for sections 6-10 only.`;
 
@@ -473,8 +496,8 @@ ${kpiTable}
 |-----|----------|--------|---------------|
 ${sptTable}
 
-## RED FLAGS TO MITIGATE:
-${data.redFlags.map(r => `- ${r.description}`).join('\n') || 'None identified'}
+## RED FLAGS TO MITIGATE (CRITICAL - MUST ADDRESS EACH ONE):
+${data.redFlags.length > 0 ? data.redFlags.map(r => `- **${r.description}**\n  Recommendation: ${r.recommendation}`).join('\n') : 'None identified'}
 
 ## GENERATE THESE 5 SECTIONS:
 
@@ -488,15 +511,24 @@ ${data.redFlags.map(r => `- ${r.description}`).join('\n') || 'None identified'}
 - Margin adjustment mechanics
 - Verification requirements
 
-### 8. RISK MITIGATION
-- Address each red flag identified
-- Mitigation strategies table
-- Monitoring mechanisms
+### 8. RISK MITIGATION (CRITICAL SECTION - RESOLVE ALL RED FLAGS)
+**THIS SECTION MUST PROVIDE CONCRETE SOLUTIONS FOR EACH RED FLAG IDENTIFIED ABOVE**
+
+For EACH red flag:
+1. State the specific issue identified
+2. Provide a CONCRETE mitigation strategy (not vague promises)
+3. Define a monitoring mechanism to track resolution
+4. Set a timeline for resolution (using Q${CURRENT_QUARTER} ${CURRENT_YEAR} or later)
+
+Format as a detailed table:
+| Red Flag | Mitigation Strategy | Monitoring Mechanism | Resolution Timeline |
+
+The draft should demonstrate that ALL greenwashing concerns have been addressed with actionable plans.
 
 ### 9. DFI ROADMAP
 - Documentation checklist for ${data.primaryDFI?.name || 'DFI'} submission
-- Timeline (starting Q1 ${CURRENT_YEAR})
-- Key milestones
+- Timeline (starting Q${CURRENT_QUARTER} ${CURRENT_YEAR} - current quarter)
+- Key milestones (only Q${CURRENT_QUARTER}-Q4 for ${CURRENT_YEAR}, any quarter for future years)
 
 ### 10. ANNEXES
 - Term sheet summary
@@ -519,10 +551,11 @@ async function phase3Review(
   const systemPrompt = `You are a greenwashing auditor and document reviewer. Review and clean the draft.
 
 YOUR TASKS:
-1. FIX YEARS: Replace any year < ${CURRENT_YEAR} with ${CURRENT_YEAR} or later
-   - "2023" → "${CURRENT_YEAR}"
-   - "2024" → "${CURRENT_YEAR}"
-   - Keep ${CURRENT_YEAR}+ years as-is
+1. FIX YEARS AND QUARTERS: Replace any date before current quarter
+   - Any year < ${CURRENT_YEAR} → "${CURRENT_YEAR}"
+   - Current quarter is Q${CURRENT_QUARTER} ${CURRENT_YEAR}
+   - "Q1 ${CURRENT_YEAR}", "Q2 ${CURRENT_YEAR}", etc. before Q${CURRENT_QUARTER} → "Q${CURRENT_QUARTER} ${CURRENT_YEAR}"
+   - Keep Q${CURRENT_QUARTER}-Q4 ${CURRENT_YEAR} and all future year quarters as-is
 
 2. REMOVE EXAGGERATED LANGUAGE:
    - "100%" → "95%"

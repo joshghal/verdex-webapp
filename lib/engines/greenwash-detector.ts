@@ -193,15 +193,19 @@ const RED_FLAG_PATTERNS: {
   },
   // DOCUMENT INCONSISTENCY RED FLAGS
   // These patterns check rawDocumentText if available (preserves original document issues)
+  // IMPORTANT: Only trigger on ACTUAL issues, not mentions in due diligence context
   {
     id: 'explicit_inconsistency',
     category: 'verification',
     severity: 'high',
     pattern: (project) => {
       const text = (project.rawDocumentText || project.description + ' ' + project.transitionStrategy).toLowerCase();
-      return text.includes('inconsistenc') || text.includes('discrepanc') ||
-        text.includes('does not match') || text.includes('contradicts') ||
-        text.includes('mathematically impossible');
+      // Only trigger if there's explicit mention of document having inconsistencies
+      // NOT if it mentions inconsistency in general context (e.g., "we address potential inconsistencies")
+      const hasIssue = (text.includes('this document') || text.includes('the document') || text.includes('our document')) &&
+        (text.includes('inconsistenc') || text.includes('discrepanc') || text.includes('contradicts'));
+      const hasMathIssue = text.includes('mathematically impossible') || text.includes('does not add up');
+      return hasIssue || hasMathIssue;
     },
     description: 'Document contains explicit inconsistencies or contradictions',
     recommendation: 'Resolve all internal inconsistencies before submitting - this is a major red flag for DFIs'
@@ -225,8 +229,10 @@ const RED_FLAG_PATTERNS: {
     severity: 'high',
     pattern: (project) => {
       const text = (project.rawDocumentText || project.description + ' ' + project.transitionStrategy).toLowerCase();
-      return text.includes('115%') || (text.includes('exceed') && text.includes('100%')) ||
-        text.includes('totals exceed');
+      // Only trigger if ownership/equity explicitly exceeds 100%, not general mentions
+      const hasOwnershipIssue = (text.includes('ownership') || text.includes('equity') || text.includes('stake') || text.includes('shareholding')) &&
+        (text.includes('115%') || text.includes('120%') || text.includes('totals exceed 100'));
+      return hasOwnershipIssue;
     },
     description: 'Ownership structure or allocations exceed 100%',
     recommendation: 'Correct ownership/allocation errors - fundamental data integrity issue'
@@ -262,7 +268,12 @@ const RED_FLAG_PATTERNS: {
     severity: 'medium',
     pattern: (project) => {
       const text = (project.rawDocumentText || project.description + ' ' + project.transitionStrategy + ' ' + project.projectType).toLowerCase();
-      return text.includes('artisanal') && text.includes('mining');
+      // Only trigger if project explicitly involves artisanal mining operations
+      // Not if it's mentioned in due diligence context (e.g., "we do not use artisanal mining")
+      const hasArtisanal = text.includes('artisanal') && text.includes('mining');
+      const isNegated = text.includes('no artisanal') || text.includes('not artisanal') ||
+        text.includes('avoid artisanal') || text.includes('exclude artisanal');
+      return hasArtisanal && !isNegated;
     },
     description: 'Artisanal mining operations carry elevated ESG and supply chain risks',
     recommendation: 'Demonstrate compliance with OECD Due Diligence Guidance for responsible mineral supply chains'
@@ -273,7 +284,17 @@ const RED_FLAG_PATTERNS: {
     severity: 'medium',
     pattern: (project) => {
       const text = (project.rawDocumentText || project.description + ' ' + project.transitionStrategy + ' ' + project.projectType).toLowerCase();
-      return text.includes('cobalt') && (text.includes('drc') || text.includes('congo'));
+      // Only trigger if project EXPLICITLY involves DRC cobalt operations in the text
+      // Company names like "Kinshasa Mining" should NOT trigger this if project is in another country
+      // Must have explicit mention of sourcing cobalt from DRC/Congo
+      const explicitDRCCobalt = text.includes('cobalt') &&
+        (text.includes('drc cobalt') || text.includes('congolese cobalt') ||
+         text.includes('cobalt from drc') || text.includes('cobalt from congo') ||
+         text.includes('cobalt sourced from') && (text.includes('drc') || text.includes('congo')));
+      // Check if it's negated (due diligence context)
+      const isNegated = text.includes('not from drc') || text.includes('not from congo') ||
+        text.includes('no drc') || text.includes('avoid drc');
+      return explicitDRCCobalt && !isNegated;
     },
     description: 'DRC cobalt mining has high ESG risk (child labor, conflict minerals)',
     recommendation: 'Demonstrate full supply chain traceability and compliance with responsible mining standards'
