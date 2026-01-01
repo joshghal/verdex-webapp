@@ -36,7 +36,7 @@ export default function ArchitecturePage() {
             <div className="text-xs text-gray-500 mt-1">Frontend</div>
           </div>
           <div className="p-4 rounded-xl bg-white border border-verdex-100 shadow-sm">
-            <div className="text-2xl font-bold text-verdex-600">Groq</div>
+            <div className="text-2xl font-bold text-verdex-600">Groq & ASI:One</div>
             <div className="text-xs text-gray-500 mt-1">AI Engine</div>
           </div>
           <div className="p-4 rounded-xl bg-white border border-verdex-100 shadow-sm">
