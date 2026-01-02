@@ -212,7 +212,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
               <ExternalLink className="w-3.5 h-3.5" />
             </Link>
             <a
-              href="https://github.com/joshghal/transition-path-webapp"
+              href="https://github.com"
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 text-gray-400 hover:text-verdex-700 rounded-lg hover:bg-verdex-50 transition-colors"
