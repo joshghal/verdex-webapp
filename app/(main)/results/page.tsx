@@ -1077,12 +1077,6 @@ export default function ResultsPage() {
     );
   }
 
-  const statusColors = {
-    eligible: 'bg-verdex-50 text-verdex-800 border-verdex-200',
-    partial: 'bg-amber-50 text-amber-800 border-amber-200',
-    ineligible: 'bg-rose-50 text-rose-800 border-rose-200',
-  };
-
   const statusLabels = {
     eligible: 'Eligible for Transition Loan',
     partial: 'Partially Eligible - Gaps Identified',
@@ -1110,126 +1104,137 @@ export default function ResultsPage() {
         </div>
 
         {/* Overall Status */}
-        <div ref={statusRef} className={`glass-card rounded-3xl p-8 mb-10 border-2 ${statusColors[result.eligibilityStatus]}`}>
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-            <div className="flex-1">
-              <p className="text-sm font-medium opacity-80 mb-1">Eligibility Status</p>
-              <p className="text-2xl font-bold mb-2">{statusLabels[result.eligibilityStatus]}</p>
-              {result.ineligibilityReasons && result.ineligibilityReasons.length > 0 && (
-                <ul className="text-sm opacity-90 space-y-1">
-                  {result.ineligibilityReasons.map((reason, i) => (
-                    <li key={i}>• {reason}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <div className="flex items-center gap-8">
-              <div className="text-center">
-                <p className="text-sm font-medium opacity-80 mb-1">Overall Score</p>
-                <p className="text-5xl font-bold">{result.overallScore}<span className="text-2xl opacity-60">/100</span></p>
-                {(result.greenwashingPenalty ?? 0) > 0 && (
-                  <div className="text-xs mt-1 opacity-90">
-                    <span>Base: {result.lmaBaseScore}</span>
-                    <span className="text-rose-700 ml-2">-{result.greenwashingPenalty} penalty</span>
-                  </div>
+        <div
+          ref={statusRef}
+          className={`relative rounded-2xl mb-10 p-6 lg:p-8 overflow-hidden ${
+            result.eligibilityStatus === 'eligible'
+              ? 'bg-gradient-to-br from-verdex-800 via-verdex-900 to-verdex-950'
+              : result.eligibilityStatus === 'partial'
+              ? 'bg-gradient-to-br from-amber-700 via-amber-800 to-amber-950'
+              : 'bg-gradient-to-br from-rose-800 via-rose-900 to-rose-950'
+          }`}
+        >
+          {/* Grid texture */}
+          <div className="absolute inset-0 opacity-[0.06]" style={{
+            backgroundImage: `linear-gradient(to right, white 1px, transparent 1px),
+                              linear-gradient(to bottom, white 1px, transparent 1px)`,
+            backgroundSize: '32px 32px'
+          }} />
+
+          {/* Glow effects */}
+          <div className={`absolute top-10 right-10 w-40 h-40 rounded-full blur-[80px] ${
+            result.eligibilityStatus === 'eligible'
+              ? 'bg-verdex-400/15'
+              : result.eligibilityStatus === 'partial'
+              ? 'bg-amber-400/15'
+              : 'bg-rose-400/15'
+          }`} />
+          <div className={`absolute bottom-10 left-10 w-48 h-48 rounded-full blur-[100px] ${
+            result.eligibilityStatus === 'eligible'
+              ? 'bg-verdex-300/10'
+              : result.eligibilityStatus === 'partial'
+              ? 'bg-amber-300/10'
+              : 'bg-rose-300/10'
+          }`} />
+
+          <div className="relative z-10">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              {/* Left: Status info */}
+              <div className="flex-1 min-w-0">
+                <h2 className="text-xl lg:text-2xl font-display font-medium text-white">
+                  {statusLabels[result.eligibilityStatus]}
+                </h2>
+                {result.ineligibilityReasons && result.ineligibilityReasons.length > 0 && (
+                  <ul className="space-y-1.5 mt-3">
+                    {result.ineligibilityReasons.map((reason, i) => (
+                      <li key={i} className="text-sm text-white/70 flex items-start gap-2">
+                        <span className="w-1 h-1 rounded-full bg-white/50 mt-2 flex-shrink-0" />
+                        {reason}
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </div>
-              <div className="hidden sm:flex flex-col gap-3">
-                <button
-                  onClick={generateDraft}
-                  disabled={draftLoading || !isExportReady}
-                  className={`font-semibold px-6 py-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 whitespace-nowrap ${draftLoading || !isExportReady
-                    ? 'bg-gradient-to-r from-verdex-300 to-teal-300 text-white cursor-not-allowed'
-                    : 'bg-gradient-to-r from-verdex-600 to-teal-600 hover:from-verdex-700 hover:to-teal-700 text-white shadow-lg hover:shadow-xl hover:scale-105'
-                    }`}
-                >
-                  {!isExportReady || draftLoading ? (
-                    <>
-                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      {!isExportReady ? 'Analyzing' : 'Generating...'}
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                      </svg>
-                      Generate AI Draft
-                    </>
+
+              {/* Right: Score and actions */}
+              <div className="flex items-center gap-6 lg:gap-8">
+                {/* Score display */}
+                <div>
+                  <p className="text-xs text-white/80 uppercase tracking-wide mb-1">Overall Score</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-4xl lg:text-5xl font-semibold text-white">{result.overallScore}</span>
+                    <span className="text-lg text-white/70">/ 100</span>
+                  </div>
+                  {(result.greenwashingPenalty ?? 0) > 0 && (
+                    <p className="text-sm text-white/90 mt-1">
+                      {result.lmaBaseScore} base <span className="text-white">−{result.greenwashingPenalty} risk penalty</span>
+                    </p>
                   )}
-                </button>
-                <button
-                  onClick={() => exportToPDF(result, relevantClauses)}
-                  disabled={!isExportReady}
-                  className={`font-semibold px-6 py-3 rounded-xl shadow-verdex-sm transition-all duration-300 flex items-center justify-center gap-2 whitespace-nowrap ${isExportReady
-                    ? 'border-2 border-verdex-600 bg-white text-verdex-600 hover:shadow-verdex hover:scale-105'
-                    : 'bg-verdex-300 text-white cursor-not-allowed'
+                </div>
+
+                {/* Desktop actions */}
+                <div className="hidden sm:flex flex-col gap-2">
+                  <button
+                    onClick={() => generatedDraft ? setDraftModalOpen(true) : generateDraft()}
+                    disabled={draftLoading || !isExportReady}
+                    className={`text-sm font-medium px-5 py-2.5 rounded-xl transition-all whitespace-nowrap ${
+                      draftLoading || !isExportReady
+                        ? 'bg-white/20 text-white/50 cursor-not-allowed'
+                        : 'bg-white text-gray-900 hover:bg-white/90 shadow-lg'
                     }`}
-                >
-                  {isExportReady ? (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  ) : (
-                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  )}
-                  {isExportReady ? 'Export Result' : 'Analyzing'}
-                </button>
+                  >
+                    {!isExportReady || draftLoading ? (
+                      <span className="flex items-center gap-2">
+                        <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        {!isExportReady ? 'Analyzing...' : 'Generating...'}
+                      </span>
+                    ) : generatedDraft ? 'View Draft' : 'Generate Draft'}
+                  </button>
+                  <button
+                    onClick={() => exportToPDF(result, relevantClauses)}
+                    disabled={!isExportReady}
+                    className={`text-sm font-medium px-5 py-2.5 rounded-xl transition-all whitespace-nowrap ${
+                      isExportReady
+                        ? 'bg-white/10 backdrop-blur-sm text-white border border-white/20 hover:bg-white/20'
+                        : 'bg-white/10 text-white/50 cursor-not-allowed'
+                    }`}
+                  >
+                    {isExportReady ? 'Export PDF' : 'Analyzing...'}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-          {/* Mobile action buttons */}
-          <div className="flex sm:hidden gap-3 mt-6 pt-6 border-t border-current/10">
-            <button
-              onClick={() => exportToPDF(result, relevantClauses)}
-              disabled={!isExportReady}
-              className={`flex-1 font-semibold px-4 py-3 rounded-xl transition-all flex items-center justify-center gap-2 ${isExportReady
-                ? 'bg-verdex-700 hover:bg-verdex-800 text-white'
-                : 'bg-verdex-300 text-white cursor-not-allowed'
+
+            {/* Mobile actions */}
+            <div className="flex sm:hidden gap-3 mt-6 pt-5 border-t border-white/10">
+              <button
+                onClick={() => exportToPDF(result, relevantClauses)}
+                disabled={!isExportReady}
+                className={`flex-1 text-sm font-medium py-2.5 rounded-xl transition-all ${
+                  isExportReady
+                    ? 'bg-white/10 backdrop-blur-sm text-white border border-white/20 hover:bg-white/20'
+                    : 'bg-white/10 text-white/50 cursor-not-allowed'
                 }`}
-            >
-              {isExportReady ? (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              )}
-              {isExportReady ? 'Assesment Result' : 'Analyzing'}
-            </button>
-            <button
-              onClick={generateDraft}
-              disabled={draftLoading || !isExportReady}
-              className={`flex-1 font-semibold px-4 py-3 rounded-xl transition-all flex items-center justify-center gap-2 ${draftLoading || !isExportReady
-                ? 'bg-gradient-to-r from-verdex-300 to-teal-300 text-white cursor-not-allowed'
-                : 'bg-gradient-to-r from-verdex-600 to-teal-600 text-white'
+              >
+                {isExportReady ? 'Export PDF' : 'Analyzing...'}
+              </button>
+              <button
+                onClick={() => generatedDraft ? setDraftModalOpen(true) : generateDraft()}
+                disabled={draftLoading || !isExportReady}
+                className={`flex-1 text-sm font-medium py-2.5 rounded-xl transition-all ${
+                  draftLoading || !isExportReady
+                    ? 'bg-white/20 text-white/50 cursor-not-allowed'
+                    : 'bg-white text-gray-900 hover:bg-white/90'
                 }`}
-            >
-              {draftLoading ? (
-                <>
-                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                  </svg>
-                  AI Draft
-                </>
-              )}
-            </button>
+              >
+                {draftLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    Generating...
+                  </span>
+                ) : generatedDraft ? 'View Draft' : 'Generate Draft'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1237,76 +1242,78 @@ export default function ResultsPage() {
           {/* Left Column - LMA Components */}
           <div className="lg:col-span-2 space-y-8">
             {/* LMA Component Scores */}
-            <div className="glass-card rounded-3xl p-6 result-card">
-              <h2 className="text-xl font-display font-medium mb-4">LMA Transition Loan Requirements</h2>
-              <div className="space-y-4">
-                {result.lmaComponents.map((component, idx) => (
-                  <div key={idx} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-medium text-gray-900">{component.name}</span>
-                      <span className={`font-semibold ${component.score / component.maxScore >= 0.7 ? 'text-verdex-600' : component.score / component.maxScore >= 0.5 ? 'text-amber-600' : 'text-rose-600'}`}>
-                        {component.score}/{component.maxScore}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
-                      <div
-                        className={`h-2 rounded-full ${component.score / component.maxScore >= 0.7 ? 'bg-verdex-600' : component.score / component.maxScore >= 0.5 ? 'bg-amber-500' : 'bg-rose-500'}`}
-                        style={{ width: `${(component.score / component.maxScore) * 100}%` }}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      {component.feedback.map((fb, i) => (
-                        <div key={i} className={`text-sm rounded-lg p-3 ${fb.status === 'met' ? 'bg-verdex-50 border border-verdex-200' :
-                          fb.status === 'partial' ? 'bg-amber-50 border border-amber-200' :
-                            'bg-rose-50 border border-rose-200'
-                          }`}>
-                          <div className="flex items-start gap-3">
-                            <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${fb.status === 'met' ? 'bg-verdex-600' :
-                              fb.status === 'partial' ? 'bg-amber-500' :
-                                'bg-rose-500'
-                              }`}>
-                              {fb.status === 'met' && (
-                                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
-                              )}
-                              {fb.status === 'partial' && (
-                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h10v2H7z" />
-                                </svg>
-                              )}
-                              {fb.status === 'missing' && (
-                                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className={`font-medium ${fb.status === 'met' ? 'text-verdex-800' :
-                                fb.status === 'partial' ? 'text-amber-800' :
-                                  'text-rose-800'
-                                }`}>
-                                {fb.description}
-                              </p>
-                              {fb.action && (
-                                <p className="text-gray-700 mt-1 text-xs">
-                                  <span className="font-semibold">Action: </span>{fb.action}
-                                </p>
-                              )}
-                            </div>
+            <div className="bg-white rounded-2xl border border-gray-100 result-card overflow-hidden">
+              <div className="px-6 py-5 border-b border-gray-100">
+                <h2 className="text-lg font-display font-medium text-gray-900">LMA Transition Loan Requirements</h2>
+                <p className="text-sm text-gray-500 mt-1">Assessment against Loan Market Association principles</p>
+              </div>
+
+              <div className="divide-y divide-gray-100">
+                {result.lmaComponents.map((component, idx) => {
+                  const percentage = Math.round((component.score / component.maxScore) * 100);
+                  const isHigh = percentage >= 70;
+                  const isMedium = percentage >= 50 && percentage < 70;
+
+                  return (
+                    <div key={idx} className={`px-6 py-5 ${idx % 2 === 1 ? 'bg-gray-100/50' : ''}`}>
+                      {/* Component Header */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h3 className="font-medium text-gray-900">{component.name}</h3>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-sm text-gray-500">{percentage}% complete</span>
+                            <span className="text-gray-300">·</span>
+                            <span className={`text-sm font-medium ${isHigh ? 'text-verdex-600' : isMedium ? 'text-amber-600' : 'text-rose-600'}`}>
+                              {component.score}/{component.maxScore}
+                            </span>
                           </div>
                         </div>
-                      ))}
+                        {/* Compact progress indicator */}
+                        <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${isHigh ? 'bg-verdex-500' : isMedium ? 'bg-amber-400' : 'bg-rose-400'}`}
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Feedback Items - Clean list style */}
+                      <div className="space-y-2 ml-5">
+                        {component.feedback.map((fb, i) => (
+                          <div
+                            key={i}
+                            className={`flex items-start gap-3 py-2 pl-3 border-l-2 ${
+                              fb.status === 'met' ? 'border-verdex-400' :
+                              fb.status === 'partial' ? 'border-amber-400' :
+                              'border-rose-400'
+                            }`}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-gray-700">{fb.description}</p>
+                              {fb.action && (
+                                <p className="text-xs text-gray-500 mt-1.5">{fb.action}</p>
+                              )}
+                            </div>
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                              fb.status === 'met' ? 'text-verdex-700 bg-verdex-50' :
+                              fb.status === 'partial' ? 'text-amber-700 bg-amber-50' :
+                              'text-rose-700 bg-rose-50'
+                            }`}>
+                              {fb.status === 'met' ? 'Met' : fb.status === 'partial' ? 'Partial' : 'Missing'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
             {/* KPI & SPT Recommendations */}
             {(result.kpiRecommendations && result.kpiRecommendations.length > 0) && (
-              <div className="glass-card rounded-3xl p-6 result-card">
-                <div className="flex justify-between items-start mb-4">
+              <div className="rounded-3xl p-6 result-card border-[1px] border-gray-100">
+                <div className="flex justify-between items-start mb-4 ">
                   <h2 className="text-xl font-display font-medium">Recommended KPIs & SPTs</h2>
                   {result.kpiAiGenerated && (
                     <span className="bg-gradient-to-r from-verdex-600 to-teal-500 text-white text-xs px-2 py-1 rounded-full">
@@ -1435,86 +1442,147 @@ export default function ResultsPage() {
             )}
 
             {/* Greenwashing Risk */}
-            <div className="glass-card rounded-3xl p-6 result-card">
-              <h2 className="text-xl font-display font-medium mb-4">Greenwashing Risk Assessment</h2>
-              <div className="flex items-center gap-4 mb-4">
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${result.greenwashingRisk.level === 'low' ? 'risk-low' :
-                  result.greenwashingRisk.level === 'medium' ? 'risk-medium' : 'risk-high'
-                  }`}>
-                  {result.greenwashingRisk.level.toUpperCase()} RISK
-                </span>
-                <span className="text-gray-600">Risk Score: {result.greenwashingRisk.score}/100</span>
+            <div className="bg-white rounded-2xl border border-gray-100 result-card overflow-hidden">
+              <div className="px-6 py-5 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-display font-medium text-gray-900">Greenwashing Risk Assessment</h2>
+                    <p className="text-sm text-gray-500 mt-1">Credibility analysis of sustainability claims</p>
+                  </div>
+                  <div className="text-right">
+                    <div className={`text-2xl font-semibold ${
+                      result.greenwashingRisk.level === 'low' ? 'text-verdex-600' :
+                      result.greenwashingRisk.level === 'medium' ? 'text-amber-600' : 'text-rose-600'
+                    }`}>
+                      {result.greenwashingRisk.score}
+                      <span className="text-sm font-normal text-gray-400">/100</span>
+                    </div>
+                    <span className={`text-xs font-medium uppercase tracking-wide ${
+                      result.greenwashingRisk.level === 'low' ? 'text-verdex-600' :
+                      result.greenwashingRisk.level === 'medium' ? 'text-amber-600' : 'text-rose-600'
+                    }`}>
+                      {result.greenwashingRisk.level} risk
+                    </span>
+                  </div>
+                </div>
+
                 {(result.greenwashingPenalty ?? 0) > 0 && (
-                  <span className="text-rose-600 text-sm font-medium">
-                    (-{result.greenwashingPenalty} pts penalty applied)
-                  </span>
+                  <p className="text-xs text-rose-500 mt-3">
+                    Score penalty of {result.greenwashingPenalty} points applied to overall assessment
+                  </p>
                 )}
               </div>
 
-              {result.greenwashingRisk.redFlags.length > 0 && (
-                <div className="mb-4">
-                  <h3 className="font-medium text-rose-700 mb-2">Red Flags</h3>
-                  <ul className="space-y-2">
-                    {result.greenwashingRisk.redFlags.map((flag, i) => (
-                      <li key={i} className="bg-rose-50 p-3 rounded-lg border border-rose-100">
-                        <p className="text-rose-800 font-medium">{flag.description}</p>
-                        <p className="text-rose-600 text-sm mt-1">{flag.recommendation}</p>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              <div className="px-6 py-5">
+                {/* Two column layout for flags and indicators */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Red Flags */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                      <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                        Concerns ({result.greenwashingRisk.redFlags.length})
+                      </span>
+                    </div>
 
-              {result.greenwashingRisk.positiveIndicators.length > 0 && (
-                <div>
-                  <h3 className="font-medium text-verdex-700 mb-2">Positive Indicators</h3>
-                  <ul className="space-y-1">
-                    {result.greenwashingRisk.positiveIndicators.map((indicator, i) => (
-                      <li key={i} className="text-verdex-700 text-sm">✓ {indicator}</li>
-                    ))}
-                  </ul>
+                    {result.greenwashingRisk.redFlags.length > 0 ? (
+                      <div className="space-y-2">
+                        {result.greenwashingRisk.redFlags.map((flag, i) => (
+                          <div key={i} className="border-l-2 border-rose-300 pl-3 py-1.5">
+                            <p className="text-sm text-gray-700">{flag.description}</p>
+                            <p className="text-xs text-gray-500 mt-1">{flag.recommendation}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-400 italic">No red flags identified</div>
+                    )}
+                  </div>
+
+                  {/* Positive Indicators */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="w-1.5 h-1.5 rounded-full bg-verdex-400" />
+                      <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                        Positive Signals ({result.greenwashingRisk.positiveIndicators.length})
+                      </span>
+                    </div>
+
+                    {result.greenwashingRisk.positiveIndicators.length > 0 ? (
+                      <div className="space-y-2">
+                        {result.greenwashingRisk.positiveIndicators.map((indicator, i) => (
+                          <div key={i} className="flex items-start gap-2 py-1.5">
+                            <span className="w-4 h-4 rounded-full bg-verdex-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-verdex-500" />
+                            </span>
+                            <span className="text-sm text-gray-700">{indicator}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-400 italic">No positive indicators identified</div>
+                    )}
+                  </div>
                 </div>
-              )}
+
+                {/* Recommendations if any */}
+                {result.greenwashingRisk.recommendations && result.greenwashingRisk.recommendations.length > 0 && (
+                  <div className="mt-6 pt-5 border-t border-gray-100">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Recommendations</span>
+                    </div>
+                    <div className="space-y-2">
+                      {result.greenwashingRisk.recommendations.map((rec, i) => (
+                        <p key={i} className="text-sm text-gray-600 flex items-start gap-2">
+                          <span className="text-gray-300 mt-1">—</span>
+                          {rec}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* DFI Matches */}
-            <div className="glass-card rounded-3xl p-6 result-card">
-              <h2 className="text-xl font-display font-medium mb-4">DFI Matches</h2>
-              <div className="space-y-4">
+            <div className="bg-white rounded-2xl border border-gray-100 result-card overflow-hidden">
+              <div className="px-6 py-5 border-b border-gray-100">
+                <h2 className="text-lg font-display font-medium text-gray-900">DFI Matches</h2>
+                <p className="text-sm text-gray-500 mt-1">Development finance institutions aligned with your project</p>
+              </div>
+
+              <div className="divide-y divide-gray-100">
                 {result.dfiMatches.map((dfi, idx) => (
-                  <div key={idx} className="bg-white/60 border border-gray-200 rounded-2xl p-5 hover:bg-white/80 transition-all">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{dfi.name}</h3>
-                        <p className="text-sm text-gray-500">{dfi.fullName}</p>
+                  <div key={idx} className={`px-6 py-4 ${idx % 2 === 1 ? 'bg-gray-50/50' : ''}`}>
+                    <div className="flex justify-between items-start gap-4 mb-2">
+                      <div className="min-w-0">
+                        <h3 className="font-medium text-gray-900">{dfi.name}</h3>
+                        <p className="text-xs text-gray-500 truncate">{dfi.fullName}</p>
                       </div>
-                      <div className="text-right">
-                        <span className="text-lg font-bold text-verdex-600">{dfi.matchScore}%</span>
-                        <p className="text-xs text-gray-500">match</p>
-                      </div>
-                    </div>
-
-                    <div className="mb-2">
-                      <span className="text-xs bg-navy-100 text-navy-800 px-2 py-1 rounded">
-                        Recommended: {dfi.recommendedRole.replace('_', ' ')}
+                      <span className="text-sm font-semibold text-verdex-600 flex-shrink-0">
+                        {dfi.matchScore}%
                       </span>
-                      {dfi.estimatedSize && (
-                        <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded ml-2">
-                          {dfi.estimatedSize.max > 0 && dfi.estimatedSize.max >= dfi.estimatedSize.min
-                            ? `$${(dfi.estimatedSize.min / 1_000_000).toFixed(0)}M - $${(dfi.estimatedSize.max / 1_000_000).toFixed(0)}M`
-                            : dfi.estimatedSize.min > 0
-                              ? `Min $${(dfi.estimatedSize.min / 1_000_000).toFixed(0)}M`
-                              : '-'}
-                        </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 mb-2 text-xs text-gray-500">
+                      <span>{dfi.recommendedRole.replace('_', ' ')}</span>
+                      {dfi.estimatedSize && dfi.estimatedSize.min > 0 && (
+                        <>
+                          <span className="text-gray-300">·</span>
+                          <span>
+                            {dfi.estimatedSize.max > 0 && dfi.estimatedSize.max >= dfi.estimatedSize.min
+                              ? `$${(dfi.estimatedSize.min / 1_000_000).toFixed(0)}M – $${(dfi.estimatedSize.max / 1_000_000).toFixed(0)}M`
+                              : `Min $${(dfi.estimatedSize.min / 1_000_000).toFixed(0)}M`}
+                          </span>
+                        </>
                       )}
                     </div>
 
-                    <div className="text-sm text-gray-600">
-                      <p className="mb-1"><strong>Why:</strong> {dfi.matchReasons.join(', ')}</p>
-                      {dfi.climateTarget && (
-                        <p className="text-verdex-600">Climate: {dfi.climateTarget}</p>
-                      )}
-                    </div>
+                    <p className="text-xs text-gray-600">{dfi.matchReasons.join(' · ')}</p>
+
+                    {dfi.climateTarget && (
+                      <p className="text-xs text-verdex-600 mt-1">{dfi.climateTarget}</p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1524,152 +1592,129 @@ export default function ResultsPage() {
           {/* Right Column - Summary */}
           <div className="space-y-8">
             {/* Next Steps */}
-            <div className="glass-card rounded-3xl p-6 result-card bg-verdex-50/80 border border-verdex-200">
-              <h2 className="text-lg font-display font-medium text-verdex-900 mb-3">Next Steps</h2>
-              <ol className="space-y-2">
-                {result.nextSteps.map((step, i) => (
-                  <li key={i} className="text-verdex-800 text-sm flex gap-2">
-                    <span className="font-bold">{i + 1}.</span>
-                    <span>{step}</span>
-                  </li>
-                ))}
-              </ol>
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100">
+                <h2 className="text-sm font-semibold text-gray-900">Next Steps</h2>
+              </div>
+              <div className="p-5">
+                <ol className="space-y-2.5">
+                  {result.nextSteps.map((step, i) => (
+                    <li key={i} className="flex gap-2.5 text-sm">
+                      <span className="text-verdex-600 font-medium">{i + 1}.</span>
+                      <span className="text-gray-700">{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
             </div>
 
             {/* Relevant Clauses */}
-            <div className="glass-card rounded-3xl p-6 result-card">
-              <div className="flex justify-between items-center mb-3">
-                <h2 className="text-lg font-display font-medium">Relevant Clauses</h2>
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 flex justify-between items-center">
+                <h2 className="text-sm font-semibold text-gray-900">Relevant Clauses</h2>
                 <Link
                   href={`/search?q=${encodeURIComponent(clauseSearchQuery)}`}
-                  className="text-xs text-verdex-600 hover:text-verdex-700 font-medium"
+                  className="text-xs text-gray-500 hover:text-verdex-600 transition-colors"
                   target='_blank'
                 >
-                  View All →
+                  View all
                 </Link>
               </div>
 
-              {clausesLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin w-5 h-5 border-2 border-verdex-600 border-t-transparent rounded-full" />
-                </div>
-              ) : relevantClauses.length > 0 ? (
-                <div className="space-y-3">
-                  {relevantClauses.slice(0, 6).map((clause, idx) => (
-                    <div
-                      key={clause.id}
-                      className="bg-white/60 border border-gray-200 rounded-xl p-3 hover:bg-white/80 transition-all cursor-pointer"
-                      onClick={() => { setSelectedClauseModal(clause); setOriginalClauseExpanded(false); }}
-                    >
-                      {/* Header row */}
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-xs text-gray-400 flex-shrink-0">#{idx + 1}</span>
-                          {clause.metadata.clauseType && (
-                            <span className="text-xs bg-verdex-100 text-verdex-800 px-2 py-0.5 rounded-full truncate">
-                              {clause.metadata.clauseType.replace(/_/g, ' ')}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-xs text-verdex-600 font-medium flex-shrink-0">
-                          {(clause.score * 100).toFixed(0)}% match
-                        </span>
-                      </div>
-
-                      {/* Relevance score row */}
-                      {clause.advice && (
-                        <div className="mb-2">
-                          <span className={`text-xs px-2 py-0.5 rounded-full inline-flex items-center gap-1 ${clause.advice.relevanceScore >= 7 ? 'bg-emerald-100 text-emerald-800' :
-                            clause.advice.relevanceScore >= 4 ? 'bg-amber-100 text-amber-800' :
-                              'bg-gray-100 text-gray-600'
-                            }`}>
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                            </svg>
-                            {clause.advice.relevanceScore}/10 project relevance
+              <div className="px-4 py-3">
+                {clausesLoading ? (
+                  <div className="flex items-center justify-center py-6">
+                    <span className="w-4 h-4 border-2 border-verdex-600 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : relevantClauses.length > 0 ? (
+                  <div className="divide-y divide-gray-50 px-1">
+                    {relevantClauses.slice(0, 6).map((clause) => (
+                      <div
+                        key={clause.id}
+                        className="py-2.5 cursor-pointer hover:bg-gray-50 -mx-2 px-2 rounded transition-colors"
+                        onClick={() => { setSelectedClauseModal(clause); setOriginalClauseExpanded(false); }}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-0.5">
+                          <span className="text-xs font-medium text-gray-700 truncate">
+                            {clause.metadata.clauseType?.replace(/_/g, ' ') || 'Clause'}
+                          </span>
+                          <span className="text-[10px] text-gray-400">
+                            {(clause.score * 100).toFixed(0)}%
                           </span>
                         </div>
-                      )}
+                        {clause.adviceLoading ? (
+                          <span className="text-[11px] text-gray-400">Analyzing...</span>
+                        ) : (
+                          <p className="text-[11px] text-gray-500 line-clamp-1">
+                            {clause.advice ? clause.advice.relevanceSummary : `${clause.content.substring(0, 80)}...`}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400 text-center py-4">No relevant clauses found</p>
+                )}
 
-                      {/* AI Summary */}
-                      {clause.adviceLoading ? (
-                        <div className="flex items-center gap-2 text-xs text-gray-400">
-                          <div className="animate-spin w-3 h-3 border border-verdex-400 border-t-transparent rounded-full" />
-                          Analyzing relevance...
-                        </div>
-                      ) : clause.advice ? (
-                        <p className="text-xs text-gray-600 line-clamp-2">
-                          {clause.advice.relevanceSummary}
-                        </p>
-                      ) : (
-                        <p className="text-xs text-gray-600 line-clamp-2">
-                          {clause.content.substring(0, 120)}...
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500 text-center py-4">
-                  No relevant clauses found
-                </p>
-              )}
-
-              <Link
-                href={`/search?q=${encodeURIComponent(clauseSearchQuery)}`}
-                className="mt-4 block w-full text-center bg-verdex-50 hover:bg-verdex-100 text-verdex-700 font-medium text-sm py-2.5 rounded-xl transition-colors border border-verdex-200"
-                target='_blank'
-              >
-                Search All LMA Clauses
-              </Link>
+                <Link
+                  href={`/search?q=${encodeURIComponent(clauseSearchQuery)}`}
+                  className="mt-3 block w-full text-center text-xs font-medium py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+                  target='_blank'
+                >
+                  Search All Clauses
+                </Link>
+              </div>
             </div>
 
             {/* Country Info */}
             {result.countryInfo && (
-              <div className="glass-card rounded-3xl p-6 result-card">
-                <h2 className="text-lg font-display font-medium mb-3">Country Context</h2>
-                <dl className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <dt className="text-gray-500">Region</dt>
-                    <dd className="font-medium">{result.countryInfo.region.replace('_', ' ')}</dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="text-gray-500">Legal System</dt>
-                    <dd className="font-medium">{result.countryInfo.legalSystem.replace('_', ' ')}</dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="text-gray-500">Currency</dt>
-                    <dd className="font-medium">{result.countryInfo.currency}</dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="text-gray-500">Sovereign Rating</dt>
-                    <dd className="font-medium">{result.countryInfo.sovereignRating || 'N/A'}</dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="text-gray-500">Political Risk</dt>
-                    <dd className={`font-medium ${result.countryInfo.politicalRisk === 'low' ? 'text-verdex-600' :
-                      result.countryInfo.politicalRisk === 'medium' ? 'text-amber-600' : 'text-rose-600'
-                      }`}>
-                      {result.countryInfo.politicalRisk}
-                    </dd>
-                  </div>
+              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100">
+                  <h2 className="text-sm font-semibold text-gray-900">Country Context</h2>
+                </div>
+                <div className="px-4 py-3">
+                  <dl className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <dt className="text-gray-400">Region</dt>
+                      <dd className="font-medium text-gray-700">{result.countryInfo.region.replace('_', ' ')}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-400">Legal System</dt>
+                      <dd className="font-medium text-gray-700">{result.countryInfo.legalSystem.replace('_', ' ')}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-400">Currency</dt>
+                      <dd className="font-medium text-gray-700">{result.countryInfo.currency}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-400">Sovereign Rating</dt>
+                      <dd className="font-medium text-gray-700">{result.countryInfo.sovereignRating || 'N/A'}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-400">Political Risk</dt>
+                      <dd className={`font-medium ${result.countryInfo.politicalRisk === 'low' ? 'text-verdex-600' :
+                        result.countryInfo.politicalRisk === 'medium' ? 'text-amber-600' : 'text-rose-600'
+                        }`}>
+                        {result.countryInfo.politicalRisk}
+                      </dd>
+                    </div>
+                  </dl>
                   {result.countryInfo.ndcTarget && (
-                    <div className="pt-2 border-t">
-                      <dt className="text-gray-500 mb-1">NDC Target</dt>
-                      <dd className="text-xs">{result.countryInfo.ndcTarget}</dd>
+                    <div className="mt-2.5 pt-2.5 border-t border-gray-100">
+                      <dt className="text-[10px] text-gray-400 mb-0.5">NDC Target</dt>
+                      <dd className="text-[11px] text-gray-500">{result.countryInfo.ndcTarget}</dd>
                     </div>
                   )}
-                </dl>
+                </div>
               </div>
             )}
 
             {/* Assessment Info */}
-            <div className="glass-card rounded-3xl p-6 result-card bg-gray-50/60">
-              <h2 className="text-lg font-display font-medium mb-3">Assessment Info</h2>
-              <p className="text-sm text-gray-600">
-                Generated: {new Date(result.assessmentDate).toLocaleString()}
+            <div className="bg-gray-50 rounded-2xl border border-gray-100 p-5">
+              <p className="text-xs text-gray-500 mb-1">
+                Generated {new Date(result.assessmentDate).toLocaleDateString()}
               </p>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-[10px] text-gray-400 leading-relaxed">
                 This assessment is based on LMA Transition Loan Principles and does not constitute financial advice.
               </p>
             </div>
@@ -1680,39 +1725,35 @@ export default function ResultsPage() {
       {/* Clause Modal */}
       {selectedClauseModal && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={() => setSelectedClauseModal(null)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+            className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden border border-gray-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex justify-between items-center px-6 py-4 border-b border-verdex-100 bg-verdex-50/30">
-              <div className="flex items-center gap-4">
-                <h3 className="font-medium text-verdex-900">Clause Analysis</h3>
-                <div className="flex items-center gap-2">
+            <div className="flex justify-between items-center px-5 py-3.5 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <h3 className="font-medium text-gray-900 text-sm">Clause Analysis</h3>
+                <div className="flex items-center gap-2 text-xs text-gray-500">
                   {selectedClauseModal.metadata.clauseType && (
-                    <span className="text-xs text-verdex-600 font-medium">
-                      {selectedClauseModal.metadata.clauseType.replace(/_/g, ' ')}
-                    </span>
+                    <span>{selectedClauseModal.metadata.clauseType.replace(/_/g, ' ')}</span>
                   )}
                   {selectedClauseModal.metadata.documentType && (
                     <>
-                      <span className="text-verdex-300">·</span>
-                      <span className="text-xs text-verdex-600 font-medium">
-                        {selectedClauseModal.metadata.documentType.replace(/_/g, ' ')}
-                      </span>
+                      <span className="text-gray-300">·</span>
+                      <span>{selectedClauseModal.metadata.documentType.replace(/_/g, ' ')}</span>
                     </>
                   )}
                   {selectedClauseModal.advice && (
                     <>
-                      <span className="text-verdex-300">·</span>
-                      <span className={`text-xs font-medium ${selectedClauseModal.advice.relevanceScore >= 7 ? 'text-emerald-600' :
+                      <span className="text-gray-300">·</span>
+                      <span className={`font-medium ${selectedClauseModal.advice.relevanceScore >= 7 ? 'text-verdex-600' :
                         selectedClauseModal.advice.relevanceScore >= 4 ? 'text-amber-600' :
-                          'text-gray-500'
+                          'text-gray-400'
                         }`}>
-                        {selectedClauseModal.advice.relevanceScore}/10 relevance
+                        {selectedClauseModal.advice.relevanceScore}/10
                       </span>
                     </>
                   )}
@@ -1720,7 +1761,7 @@ export default function ResultsPage() {
               </div>
               <button
                 onClick={() => setSelectedClauseModal(null)}
-                className="text-verdex-600 hover:text-verdex-600 transition-colors"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1729,25 +1770,25 @@ export default function ResultsPage() {
             </div>
 
             {/* Modal Content */}
-            <div className="px-6 py-4 overflow-auto max-h-[60vh] space-y-5">
+            <div className="px-5 py-4 overflow-auto max-h-[60vh] space-y-4">
               {/* Loading State */}
               {selectedClauseModal.adviceLoading && (
-                <div className="flex items-center gap-3 text-verdex-600">
-                  <div className="w-4 h-4 border-2 border-verdex-200 border-t-verdex-600 rounded-full animate-spin" />
+                <div className="flex items-center gap-3 text-gray-500">
+                  <div className="w-4 h-4 border-2 border-gray-200 border-t-verdex-600 rounded-full animate-spin" />
                   <span className="text-sm">Analyzing...</span>
                 </div>
               )}
 
               {selectedClauseModal.advice && (
-                <div className="space-y-6">
-                  {/* Contextualized Example Clause - Minimal style */}
+                <div className="space-y-4">
+                  {/* Contextualized Example Clause */}
                   {selectedClauseModal.advice.contextualizedExample && (
-                    <div className="group pb-6 border-b border-verdex-100">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-medium text-verdex-600 uppercase tracking-wider">Adapted for your project</span>
+                    <div className="group">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Adapted for your project</span>
                         <button
                           onClick={() => navigator.clipboard.writeText(selectedClauseModal.advice?.contextualizedExample || '')}
-                          className="opacity-0 group-hover:opacity-100 text-verdex-600 hover:text-verdex-600 transition-all text-xs flex items-center gap-1"
+                          className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 transition-all text-xs flex items-center gap-1"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -1755,8 +1796,8 @@ export default function ResultsPage() {
                           Copy
                         </button>
                       </div>
-                      <div className="relative pl-4 border-l-2 border-verdex-400">
-                        <p className="text-[15px] text-gray-800 leading-relaxed whitespace-pre-wrap">
+                      <div className="bg-verdex-50/50 rounded-lg p-4 border border-verdex-100">
+                        <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
                           {selectedClauseModal.advice.contextualizedExample}
                         </p>
                       </div>
@@ -1764,30 +1805,28 @@ export default function ResultsPage() {
                   )}
 
                   {/* AI Analysis Summary */}
-                  <div className="pb-6 border-b border-verdex-100">
-                    <p className="text-sm text-verdex-700 leading-relaxed">{selectedClauseModal.advice.relevanceSummary}</p>
-                  </div>
+                  <p className="text-sm text-gray-600 leading-relaxed">{selectedClauseModal.advice.relevanceSummary}</p>
 
                   {/* Two Column Grid: How to Apply & When to Use */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-6 border-b border-verdex-100">
-                    <div>
-                      <h4 className="text-xs font-medium text-verdex-600 uppercase tracking-wider mb-3">How to Apply</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <h4 className="text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-2">How to Apply</h4>
                       <p className="text-sm text-gray-700 leading-relaxed">{selectedClauseModal.advice.howToApply}</p>
                     </div>
-                    <div className="md:border-l md:border-verdex-100 md:pl-8">
-                      <h4 className="text-xs font-medium text-verdex-600 uppercase tracking-wider mb-3">When to Use</h4>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <h4 className="text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-2">When to Use</h4>
                       <p className="text-sm text-gray-700 leading-relaxed">{selectedClauseModal.advice.whenToUse}</p>
                     </div>
                   </div>
 
                   {/* Key Considerations */}
                   {selectedClauseModal.advice.keyConsiderations?.length > 0 && (
-                    <div className="pb-6 border-b border-verdex-100">
-                      <h4 className="text-xs font-medium text-verdex-600 uppercase tracking-wider mb-4">Key Considerations</h4>
-                      <ul className="space-y-3">
+                    <div>
+                      <h4 className="text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-2">Key Considerations</h4>
+                      <ul className="space-y-1.5">
                         {selectedClauseModal.advice.keyConsiderations.map((consideration, idx) => (
-                          <li key={idx} className="flex items-start gap-3 text-sm text-gray-700">
-                            <span className="text-verdex-300 select-none font-mono text-xs pt-0.5">{String(idx + 1).padStart(2, '0')}</span>
+                          <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                            <span className="text-gray-300 select-none text-xs mt-0.5">{idx + 1}.</span>
                             <span className="leading-relaxed">{consideration}</span>
                           </li>
                         ))}
@@ -1797,8 +1836,8 @@ export default function ResultsPage() {
 
                   {/* Suggested Modifications */}
                   {selectedClauseModal.advice.suggestedModifications && (
-                    <div className="pl-4 border-l-2 border-amber-300">
-                      <h4 className="text-xs font-medium text-amber-600 uppercase tracking-wider mb-2">Suggested Modification</h4>
+                    <div className="bg-amber-50 rounded-lg p-3 border border-amber-100">
+                      <h4 className="text-[11px] font-medium text-amber-600 uppercase tracking-wide mb-1.5">Suggested Modification</h4>
                       <p className="text-sm text-gray-700 leading-relaxed">{selectedClauseModal.advice.suggestedModifications}</p>
                     </div>
                   )}
@@ -1806,23 +1845,23 @@ export default function ResultsPage() {
               )}
 
               {/* Original Clause Content - Collapsible */}
-              <div className="pt-4 mt-2 border-t border-verdex-100">
+              <div className="pt-3 border-t border-gray-100">
                 <button
                   onClick={() => setOriginalClauseExpanded(!originalClauseExpanded)}
-                  className="flex items-center gap-2 text-verdex-600 hover:text-verdex-600 transition-colors group"
+                  className="flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors"
                 >
                   <svg
-                    className={`w-4 h-4 transition-transform duration-200 ${originalClauseExpanded ? 'rotate-90' : ''}`}
+                    className={`w-3.5 h-3.5 transition-transform duration-200 ${originalClauseExpanded ? 'rotate-90' : ''}`}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
-                  <span className="text-xs font-medium uppercase tracking-wider text-verdex-600">Original Template</span>
+                  <span className="text-xs font-medium">Original Template</span>
                 </button>
-                <div className={`overflow-hidden transition-all duration-200 ${originalClauseExpanded ? 'max-h-[300px] mt-4' : 'max-h-0'}`}>
-                  <div className="pl-4 border-l border-verdex-200">
+                <div className={`overflow-hidden transition-all duration-200 ${originalClauseExpanded ? 'max-h-[300px] mt-3' : 'max-h-0'}`}>
+                  <div className="bg-gray-50 rounded-lg p-3">
                     <p className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed max-h-[200px] overflow-auto">
                       {formatClauseContent(selectedClauseModal.content)}
                     </p>
@@ -1832,25 +1871,10 @@ export default function ResultsPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-4 border-t border-verdex-100 bg-verdex-50/30 flex items-center justify-between">
+            <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between">
               {selectedClauseModal.metadata.source && (
-                <span className="text-xs text-verdex-600">{selectedClauseModal.metadata.source}</span>
+                <span className="text-xs text-gray-400">Source: {selectedClauseModal.metadata.source}</span>
               )}
-              <div className="flex items-center gap-4 ml-auto">
-                <Link
-                  href={`/search?q=${encodeURIComponent(clauseSearchQuery)}`}
-                  className="text-sm text-verdex-600 hover:text-verdex-800 transition-colors"
-                  onClick={() => setSelectedClauseModal(null)}
-                >
-                  Search similar
-                </Link>
-                <button
-                  onClick={() => navigator.clipboard.writeText(selectedClauseModal.content)}
-                  className="bg-verdex-600 hover:bg-verdex-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
-                >
-                  Copy clause
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -1859,39 +1883,30 @@ export default function ResultsPage() {
       {/* Draft Modal */}
       {draftModalOpen && generatedDraft && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={() => setDraftModalOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-hidden flex flex-col"
+            className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[95vh] overflow-hidden flex flex-col border border-gray-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex justify-between items-center px-6 py-4 border-b border-verdex-100 bg-verdex-50/30 flex-shrink-0">
-              <div className="flex items-center gap-6">
-                <h3 className="font-medium text-verdex-900">Generated Draft</h3>
+            <div className="flex justify-between items-center px-5 py-3.5 border-b border-gray-100 flex-shrink-0">
+              <div className="flex items-center gap-4">
+                <h3 className="font-medium text-gray-900 text-sm">Generated Draft</h3>
                 {draftMetadata && (
-                  <div className="flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="text-verdex-600">Target</span>
-                      <span className="text-verdex-700 font-medium">{draftMetadata.targetDFI}</span>
-                    </div>
-                    <div className="h-4 w-px bg-verdex-200" />
-                    <div className="flex items-center gap-2">
-                      <span className="text-verdex-600">Sector</span>
-                      <span className="text-verdex-700 font-medium capitalize">{draftMetadata.sector}</span>
-                    </div>
-                    <div className="h-4 w-px bg-verdex-200" />
-                    <div className="flex items-center gap-2">
-                      <span className="text-verdex-600">Generated</span>
-                      <span className="text-verdex-700 font-medium">{new Date(draftMetadata.generatedAt).toLocaleDateString()}</span>
-                    </div>
+                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                    <span>{draftMetadata.targetDFI}</span>
+                    <span className="text-gray-300">·</span>
+                    <span className="capitalize">{draftMetadata.sector}</span>
+                    <span className="text-gray-300">·</span>
+                    <span>{new Date(draftMetadata.generatedAt).toLocaleDateString()}</span>
                   </div>
                 )}
               </div>
               <button
                 onClick={() => setDraftModalOpen(false)}
-                className="text-verdex-600 hover:text-verdex-600 transition-colors"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1900,7 +1915,7 @@ export default function ResultsPage() {
             </div>
 
             {/* Modal Content - Scrollable */}
-            <div className="flex-1 overflow-auto px-6 py-4">
+            <div className="flex-1 overflow-auto px-5 py-4">
               <div className="max-w-none">
                 {/* Render markdown content with table support */}
                 {(() => {
@@ -1952,19 +1967,19 @@ export default function ResultsPage() {
                           <div key={`table-${elements.length}`} className="my-4 overflow-x-auto">
                             <table className="min-w-full">
                               <thead>
-                                <tr className="border-b border-verdex-200 bg-verdex-50/50">
+                                <tr className="border-b border-gray-200 bg-gray-50">
                                   {headers.map((h, hi) => (
-                                    <th key={hi} className="px-3 py-2 text-left text-xs font-medium text-verdex-600 uppercase tracking-wider">
+                                    <th key={hi} className="px-3 py-2 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wide">
                                       {h}
                                     </th>
                                   ))}
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-verdex-50">
+                              <tbody className="divide-y divide-gray-100">
                                 {rows.map((row, ri) => (
-                                  <tr key={ri}>
+                                  <tr key={ri} className={ri % 2 === 1 ? 'bg-gray-50' : ''}>
                                     {row.map((cell, ci) => (
-                                      <td key={ci} className="px-3 py-2 text-sm text-gray-700">
+                                      <td key={ci} className="px-3 py-2 text-xs text-gray-700">
                                         {cell}
                                       </td>
                                     ))}
@@ -1983,31 +1998,31 @@ export default function ResultsPage() {
                       elements.push(<div key={`line-${i}`} className="h-2" />);
                     } else if (trimmed.startsWith('### ')) {
                       elements.push(
-                        <h3 key={`line-${i}`} className="text-md font-medium text-verdex-600 uppercase tracking-wider mt-5 mb-2">
+                        <h3 key={`line-${i}`} className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-4 mb-2">
                           {trimmed.replace('### ', '').replace(/\*\*/g, '')}
                         </h3>
                       );
                     } else if (trimmed.startsWith('## ')) {
                       elements.push(
-                        <h2 key={`line-${i}`} className="text-sm font-semibold text-verdex-800 mt-6 mb-2 pb-2 border-b border-verdex-100">
+                        <h2 key={`line-${i}`} className="text-sm font-semibold text-gray-800 mt-5 mb-2 pb-2 border-b border-gray-100">
                           {trimmed.replace('## ', '').replace(/\*\*/g, '')}
                         </h2>
                       );
                     } else if (trimmed.startsWith('# ')) {
                       elements.push(
-                        <h1 key={`line-${i}`} className="text-base font-medium text-verdex-900 mb-1">
+                        <h1 key={`line-${i}`} className="text-sm font-medium text-gray-900 mb-1">
                           {trimmed.replace('# ', '').replace(/\*\*/g, '')}
                         </h1>
                       );
                     } else if (trimmed.startsWith('---')) {
-                      elements.push(<hr key={`line-${i}`} className="my-5 border-verdex-100" />);
+                      elements.push(<hr key={`line-${i}`} className="my-4 border-gray-100" />);
                     } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
                       const content = trimmed.substring(2);
                       elements.push(
-                        <div key={`line-${i}`} className="flex items-start gap-2 my-1">
-                          <span className="text-verdex-300 select-none">—</span>
-                          <span className="text-sm text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{
-                            __html: content.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-medium text-verdex-900">$1</strong>')
+                        <div key={`line-${i}`} className="flex items-start gap-2 my-0.5">
+                          <span className="text-gray-300 select-none text-xs mt-0.5">•</span>
+                          <span className="text-xs text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{
+                            __html: content.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-medium text-gray-900">$1</strong>')
                           }} />
                         </div>
                       );
@@ -2015,18 +2030,18 @@ export default function ResultsPage() {
                       const match = trimmed.match(/^(\d+)\.\s(.*)$/);
                       if (match) {
                         elements.push(
-                          <div key={`line-${i}`} className="flex items-start gap-2 my-1">
-                            <span className="text-verdex-300 select-none font-mono text-xs pt-0.5">{match[1].padStart(2, '0')}</span>
-                            <span className="text-sm text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{
-                              __html: match[2].replace(/\*\*([^*]+)\*\*/g, '<strong class="font-medium text-verdex-900">$1</strong>')
+                          <div key={`line-${i}`} className="flex items-start gap-2 my-0.5">
+                            <span className="text-gray-300 select-none text-xs mt-0.5">{match[1]}.</span>
+                            <span className="text-xs text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{
+                              __html: match[2].replace(/\*\*([^*]+)\*\*/g, '<strong class="font-medium text-gray-900">$1</strong>')
                             }} />
                           </div>
                         );
                       }
                     } else {
                       elements.push(
-                        <p key={`line-${i}`} className="text-sm text-gray-700 leading-relaxed my-1" dangerouslySetInnerHTML={{
-                          __html: trimmed.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-medium text-verdex-900">$1</strong>')
+                        <p key={`line-${i}`} className="text-xs text-gray-700 leading-relaxed my-0.5" dangerouslySetInnerHTML={{
+                          __html: trimmed.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-medium text-gray-900">$1</strong>')
                         }} />
                       );
                     }
@@ -2039,21 +2054,21 @@ export default function ResultsPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-4 border-t border-verdex-100 bg-verdex-50/30 flex-shrink-0">
+            <div className="px-5 py-3 border-t border-gray-100 flex-shrink-0">
               <div className="flex items-center justify-between">
-                <p className="text-xs text-verdex-700">Review with legal counsel before use</p>
-                <div className="flex items-center gap-4">
+                <p className="text-xs text-gray-400">Review with legal counsel before use</p>
+                <div className="flex items-center gap-3">
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(generatedDraft);
                     }}
-                    className="text-sm text-verdex-600 hover:text-verdex-800 transition-colors"
+                    className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
                   >
                     Copy
                   </button>
                   <button
                     onClick={exportDraftToPDF}
-                    className="bg-verdex-600 hover:bg-verdex-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                    className="bg-verdex-600 hover:bg-verdex-700 text-white text-sm font-medium py-2 px-5 rounded-lg transition-colors"
                   >
                     Export PDF
                   </button>
