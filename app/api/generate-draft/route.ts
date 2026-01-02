@@ -214,6 +214,43 @@ interface PreparedData {
 }
 
 // ============================================================================
+// SOURCE REFERENCE FORMATTER
+// Cleans up PDF filenames and formats source references for readability
+// ============================================================================
+function formatSourceReference(source: string): string {
+  if (!source) return 'LMA Standard';
+
+  // Remove file extensions
+  let formatted = source.replace(/\.(pdf|docx|doc|xlsx|xls)$/i, '');
+
+  // Replace underscores and hyphens with spaces
+  formatted = formatted.replace(/[_-]/g, ' ');
+
+  // Handle common abbreviations (keep them uppercase)
+  const abbreviations = ['SBTi', 'LMA', 'GHG', 'ESG', 'TPT', 'SPT', 'KPI', 'NDC', 'TCFD', 'CDP', 'ISO', 'GRI', 'ICMA', 'CBI'];
+  abbreviations.forEach(abbr => {
+    const regex = new RegExp(`\\b${abbr}\\b`, 'gi');
+    formatted = formatted.replace(regex, abbr);
+  });
+
+  // Clean up version numbers (V1, V2, etc.)
+  formatted = formatted.replace(/\bV(\d+)\b/gi, 'Version $1');
+
+  // Remove extra spaces
+  formatted = formatted.replace(/\s+/g, ' ').trim();
+
+  // Title case words (except abbreviations)
+  formatted = formatted.split(' ').map(word => {
+    if (abbreviations.includes(word.toUpperCase())) return word;
+    if (/^(v|Version)\d+$/i.test(word)) return word;
+    if (word.length <= 2) return word.toLowerCase();
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  }).join(' ');
+
+  return formatted;
+}
+
+// ============================================================================
 // PROGRAMMATIC CLAUSE SECTION BUILDER
 // Builds the adapted clauses section without AI - 100% reliable insertion
 // ============================================================================
@@ -263,7 +300,7 @@ function buildAdaptedClausesSection(clauses: PreparedData['clauses'], projectNam
 
     groupClauses.forEach((clause, index) => {
       section += `**${index + 1}. ${clause.type.charAt(0).toUpperCase() + clause.type.slice(1)}**\n`;
-      section += `*Source: ${clause.source}*\n\n`;
+      section += `*Source: ${formatSourceReference(clause.source)}*\n\n`;
 
       if (clause.contextualizedExample) {
         section += `${clause.contextualizedExample}\n\n`;
@@ -623,9 +660,50 @@ For EACH red flag, provide detailed response:
 SPO (pre-signing), Annual Verification, GHG Audit
 
 ### 10. DFI ROADMAP & ANNEXES
-- Checklist for ${data.primaryDFI?.name || 'DFI'} submission
-- Timeline starting Q${CURRENT_QUARTER} ${CURRENT_YEAR}
-- Glossary: SBTi, TPT, SPO, GHG Protocol, bps, tCO2e, MW
+
+#### 10.1 DFI Roadmap
+Create a detailed submission roadmap table for **${data.primaryDFI?.name || 'DFI'}**:
+
+| Phase | Timeline | Activities | Deliverables | Status |
+|-------|----------|------------|--------------|--------|
+| Phase 1: Pre-Application | Q${CURRENT_QUARTER} ${CURRENT_YEAR} | Initial outreach, concept note preparation | Concept Note, Project Summary | Pending |
+| Phase 2: Due Diligence | Q${Math.min(CURRENT_QUARTER + 1, 4)} ${CURRENT_QUARTER === 4 ? CURRENT_YEAR + 1 : CURRENT_YEAR} | Document submission, site visit, ESG review | Full Application Package, ESIA | Pending |
+| Phase 3: Appraisal | Q${Math.min(CURRENT_QUARTER + 2, 4)} ${CURRENT_QUARTER >= 3 ? CURRENT_YEAR + 1 : CURRENT_YEAR} | Financial modeling, term negotiation | Term Sheet, Financial Model | Pending |
+| Phase 4: Approval | +3-4 months | Board/committee approval | Commitment Letter | Pending |
+| Phase 5: Disbursement | +1-2 months | Legal documentation, conditions precedent | Loan Agreement, First Disbursement | Pending |
+
+**${data.primaryDFI?.name || 'DFI'} Specific Requirements:**
+- Climate finance allocation: ${data.primaryDFI?.climateTarget || 'Per DFI climate strategy'}
+- Recommended role: ${data.primaryDFI?.recommendedRole || 'Senior lender or anchor investor'}
+- Special programs: ${data.primaryDFI?.specialPrograms?.join(', ') || 'Standard climate finance windows'}
+
+**Key Contact Points:**
+- Climate Finance Team
+- Regional Office (${data.countryName})
+- Project Preparation Facility (if applicable)
+
+#### 10.2 Documentation Checklist
+- [ ] Transition Plan document
+- [ ] Financial projections (5-year)
+- [ ] Environmental & Social Impact Assessment
+- [ ] Corporate governance documents
+- [ ] Historical financial statements (3 years)
+- [ ] Technical feasibility study
+- [ ] Market analysis
+- [ ] SPO/External Review report
+
+#### 10.3 Glossary
+| Term | Definition |
+|------|------------|
+| SBTi | Science Based Targets initiative |
+| TPT | Transition Performance Target |
+| SPO | Second Party Opinion |
+| GHG Protocol | Greenhouse Gas Protocol |
+| bps | Basis points (1/100th of 1%) |
+| tCO2e | Tonnes of CO2 equivalent |
+| MW | Megawatt |
+| NDC | Nationally Determined Contribution |
+| TCFD | Task Force on Climate-related Financial Disclosures |
 
 Output comprehensive markdown.`;
 
