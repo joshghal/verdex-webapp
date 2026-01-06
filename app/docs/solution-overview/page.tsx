@@ -17,6 +17,7 @@ export default function SolutionOverviewPage() {
         { id: 'what-is-verdex', title: 'What is Verdex?', level: 2 },
         { id: 'value-proposition', title: 'Value Proposition', level: 2 },
         { id: 'how-it-works', title: 'How It Works', level: 2 },
+        { id: 'design-principles', title: 'Design Principles', level: 2 },
       ]}
     >
       <h2 id="what-is-verdex" className="text-2xl font-display font-semibold text-gray-900 mt-8 mb-4">
@@ -98,6 +99,36 @@ export default function SolutionOverviewPage() {
       <InfoBox type="success" title="End-to-End Solution">
         Verdex provides a complete workflow from project submission to financing readiness, eliminating the need for multiple consultants and manual compliance checks.
       </InfoBox>
+
+      <h2 id="design-principles" className="text-2xl font-display font-semibold text-gray-900 mt-12 mb-4">
+        Design Principles
+      </h2>
+
+      <div className="grid md:grid-cols-2 gap-4 my-6">
+        {[
+          {
+            title: 'Simple for First-Time Users',
+            description: 'Upload a PDF or fill a form — no training required. Assessment completes in under 60 seconds.',
+          },
+          {
+            title: 'Rigorous for DFI Due Diligence',
+            description: 'Scoring based on the October 2025 Transition Loan Guide. Every rule traceable to LMA documentation.',
+          },
+          {
+            title: 'Scalable Architecture',
+            description: 'Stateless, cloud-native design. Handles one project or thousands without infrastructure changes.',
+          },
+          {
+            title: 'Transparent Methodology',
+            description: 'Full documentation of scoring logic, sources, and limitations. No black-box decisions.',
+          },
+        ].map((item, idx) => (
+          <div key={idx} className="p-4 rounded-xl bg-white border border-gray-100 hover:border-verdex-200 transition-colors">
+            <div className="font-semibold text-gray-900 mb-2">{item.title}</div>
+            <p className="text-sm text-gray-600">{item.description}</p>
+          </div>
+        ))}
+      </div>
 
     </DocPage>
   );

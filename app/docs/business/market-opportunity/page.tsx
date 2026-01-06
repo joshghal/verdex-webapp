@@ -17,6 +17,7 @@ export default function MarketOpportunityPage() {
         { id: 'tam', title: 'TAM Analysis', level: 2 },
         { id: 'sam', title: 'SAM Analysis', level: 2 },
         { id: 'som', title: 'SOM Projection', level: 2 },
+        { id: 'why-now', title: 'Why Now?', level: 2 },
       ]}
     >
       <h2 id="tam" className="text-2xl font-display font-semibold text-gray-900 mt-8 mb-4">
@@ -76,6 +77,40 @@ export default function MarketOpportunityPage() {
 
       <InfoBox type="success" title="Year 5 Target">
         <strong>USD 20 million ARR</strong> through a combination of subscription and transaction-based revenue.
+      </InfoBox>
+
+      <h2 id="why-now" className="text-2xl font-display font-semibold text-gray-900 mt-12 mb-4">
+        Why Now?
+      </h2>
+
+      <p className="text-gray-700 leading-relaxed mb-4">
+        Three forces are converging to create this opportunity:
+      </p>
+
+      <div className="grid md:grid-cols-3 gap-4 my-6">
+        {[
+          {
+            title: 'LMA Framework Maturity',
+            description: 'October 2025 Transition Loan Guide finally provides clear, shared criteria for credible transition finance.',
+          },
+          {
+            title: 'DFI Climate Mandates',
+            description: 'Growing pressure on IFC, AfDB, FMO, and others to deploy capital into African climate projects.',
+          },
+          {
+            title: 'Infrastructure Gap',
+            description: 'No existing tool bridges LMA frameworks to African developers. The demand exists — projects just need to speak the right language.',
+          },
+        ].map((item, idx) => (
+          <div key={idx} className="p-4 rounded-xl bg-verdex-50 border border-verdex-100">
+            <div className="font-semibold text-verdex-800 mb-2">{item.title}</div>
+            <p className="text-sm text-verdex-600">{item.description}</p>
+          </div>
+        ))}
+      </div>
+
+      <InfoBox type="info" title="LMA Geographic Mandate">
+        Africa is one-third of LMA&apos;s geographic coverage (Europe, Middle East, and Africa). Verdex operationalizes 12 years of LMA Africa engagement that has been underutilized.
       </InfoBox>
 
     </DocPage>

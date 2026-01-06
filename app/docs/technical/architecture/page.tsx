@@ -19,6 +19,7 @@ export default function ArchitecturePage() {
         { id: 'ai-engine', title: 'AI Engine', level: 2 },
         { id: 'knowledge-base', title: 'Knowledge Base', level: 2 },
         { id: 'tech-stack', title: 'Tech Stack', level: 2 },
+        { id: 'scalability', title: 'Scalability & Design', level: 2 },
       ]}
     >
       <h2 id="overview" className="text-2xl font-display font-semibold text-gray-900 mt-8 mb-4">
@@ -140,6 +141,40 @@ export default function ArchitecturePage() {
   }
 }`}
       />
+
+      <h2 id="scalability" className="text-2xl font-display font-semibold text-gray-900 mt-12 mb-4">
+        Scalability & Design
+      </h2>
+
+      <div className="grid md:grid-cols-2 gap-4 my-6">
+        {[
+          {
+            title: 'Stateless Architecture',
+            description: 'No server-side sessions. Each request is independent, enabling horizontal scaling.',
+          },
+          {
+            title: 'Cloud-Native',
+            description: 'Deployed on Vercel (frontend) and Railway (embedding service). Auto-scales with demand.',
+          },
+          {
+            title: 'Vector Database',
+            description: 'Pinecone handles millions of embeddings. Clause search scales without index rebuilds.',
+          },
+          {
+            title: 'API-First',
+            description: 'All features accessible via REST APIs. Easy integration with existing bank systems.',
+          },
+        ].map((item, idx) => (
+          <div key={idx} className="p-4 rounded-xl bg-white border border-gray-100">
+            <div className="font-semibold text-gray-900 mb-1">{item.title}</div>
+            <p className="text-sm text-gray-600">{item.description}</p>
+          </div>
+        ))}
+      </div>
+
+      <InfoBox type="info" title="From One to Thousands">
+        Architecture handles one project or thousands without infrastructure changes. Same codebase, same validation logic, same compliance standards.
+      </InfoBox>
 
       <InfoBox type="success" title="Built for LMA Edge Hackathon 2025">
         Verdex was developed for the LMA Edge Hackathon 2025, demonstrating how AI can bridge the climate finance gap in Africa through automated compliance validation.

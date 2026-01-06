@@ -20,6 +20,7 @@ export default function ExecutiveSummaryPage() {
         { id: 'key-features', title: 'Key Features', level: 2 },
         { id: 'how-it-works', title: 'How It Works', level: 2 },
         { id: 'impact', title: 'Impact', level: 2 },
+        { id: 'why-different', title: 'What Makes This Different', level: 2 },
       ]}
     >
       {/* Hero Stats */}
@@ -158,6 +159,45 @@ export default function ExecutiveSummaryPage() {
           <li>• <strong>100+ million tonnes CO2e</strong> avoided annually</li>
         </ul>
       </InfoBox>
+
+      <h2 id="why-different" className="text-2xl font-display font-semibold text-gray-900 mt-12 mb-4">
+        What Makes This Different
+      </h2>
+
+      <p className="text-gray-700 leading-relaxed mb-4">
+        Existing tools offer generic ESG scoring or require expensive consultants. Verdex is <strong>purpose-built for LMA Transition Loan validation</strong> — grounded in 2,009 catalogued LMA documents, not fabricated criteria.
+      </p>
+
+      <DataTable
+        headers={['Dimension', 'Traditional Approach', 'Verdex']}
+        rows={[
+          ['Compliance check', 'Manual consultant review', 'Automated in <60 seconds'],
+          ['Framework coverage', 'Generic ESG metrics', 'LMA 5 Components + SBTi + Paris'],
+          ['DFI matching', 'Relationship-based', 'Criteria-based matching to 7+ DFIs'],
+          ['Standardization', 'Per-deal negotiation', 'Common framework across all projects'],
+        ]}
+      />
+
+      <InfoBox type="info" title="Industry-Wide Standardization">
+        Every project assessed on the same LMA framework means faster decisions, lower risk, and a common language between developers and lenders across the industry.
+      </InfoBox>
+
+      <div className="my-8 p-6 rounded-2xl bg-gradient-to-br from-verdex-50 via-white to-emerald-50 border border-verdex-200">
+        <h3 className="font-display font-semibold text-verdex-800 mb-3">Knowledge Base: Built to Scale</h3>
+        <p className="text-gray-700 leading-relaxed mb-4">
+          We&apos;ve catalogued <strong>2,009 LMA documents</strong> — the foundation is laid. Today, we index <strong>21 high-priority documents</strong> covering the October 2025 Transition Loan Guide, core facility agreements, and Africa-specific frameworks.
+        </p>
+        <p className="text-gray-700 leading-relaxed mb-4">
+          This isn&apos;t a limitation — it&apos;s a deliberate MVP scope. The full catalogue is mapped, categorized, and ready for ingestion.
+        </p>
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-white border border-verdex-100">
+          <div className="w-10 h-10 rounded-full bg-verdex-500 flex items-center justify-center text-white font-bold">→</div>
+          <div>
+            <div className="font-semibold text-verdex-800">Roadmap: Full LMA Coverage</div>
+            <div className="text-sm text-gray-600">2,009 documents indexed = the most comprehensive LMA compliance engine in the market. No competitor has done this research.</div>
+          </div>
+        </div>
+      </div>
 
     </DocPage>
   );
