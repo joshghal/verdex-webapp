@@ -57,6 +57,91 @@ export function CodeBlock({ code, language = 'typescript' }: { code: string; lan
   );
 }
 
+export function CollapsibleCodeBlock({
+  code,
+  language = 'typescript',
+  title,
+  defaultLines = 15
+}: {
+  code: string;
+  language?: string;
+  title?: string;
+  defaultLines?: number;
+}) {
+  const [copied, setCopied] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const lines = code.split('\n');
+  const totalLines = lines.length;
+  const isCollapsible = totalLines > defaultLines;
+  const displayedCode = expanded || !isCollapsible
+    ? code
+    : lines.slice(0, defaultLines).join('\n');
+
+  return (
+    <div className="relative group my-6 rounded-xl overflow-hidden border border-verdex-100 bg-gradient-to-br from-gray-50 to-verdex-50/30">
+      <div className="flex items-center justify-between px-4 py-2 bg-verdex-50/50 border-b border-verdex-100">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-medium text-verdex-600 uppercase tracking-wide">{language}</span>
+          {title && (
+            <span className="text-xs font-medium text-gray-600 border-l border-verdex-200 pl-3">{title}</span>
+          )}
+        </div>
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1 text-xs text-gray-500 hover:text-verdex-600 transition-colors"
+        >
+          {copied ? (
+            <>
+              <Check className="w-3.5 h-3.5" />
+              Copied
+            </>
+          ) : (
+            <>
+              <Copy className="w-3.5 h-3.5" />
+              Copy
+            </>
+          )}
+        </button>
+      </div>
+      <div className="relative">
+        <pre className="p-4 overflow-x-auto text-sm">
+          <code className="text-gray-700 font-mono">{displayedCode}</code>
+        </pre>
+        {isCollapsible && !expanded && (
+          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-gray-50 to-transparent pointer-events-none" />
+        )}
+      </div>
+      {isCollapsible && (
+        <div className="border-t border-verdex-100 bg-verdex-50/30">
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="w-full px-4 py-2 text-xs font-medium text-verdex-600 hover:text-verdex-700 hover:bg-verdex-50 transition-colors flex items-center justify-center gap-1"
+          >
+            {expanded ? (
+              <>
+                <ChevronRight className="w-3.5 h-3.5 rotate-[-90deg]" />
+                Show less
+              </>
+            ) : (
+              <>
+                <ChevronRight className="w-3.5 h-3.5 rotate-90" />
+                Show more ({totalLines - defaultLines} more lines)
+              </>
+            )}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function InfoBox({ type = 'info', title, children }: { type?: 'info' | 'warning' | 'success' | 'tip'; title?: string; children: React.ReactNode }) {
   const styles = {
     info: 'bg-blue-50 border-blue-200 text-blue-800',
