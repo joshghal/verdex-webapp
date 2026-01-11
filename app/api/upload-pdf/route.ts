@@ -182,6 +182,75 @@ Respond in JSON format only:
         result.parsed.verificationStatus = `Third-party verification commitment: ${foundVerification}`;
       }
 
+      // Override financials if found in document (handles generated draft table format)
+      if (!result.parsed.financingNeeded || result.parsed.financingNeeded === 0) {
+        // Look for "Budget USD X" or "Total USD X" or "USD X,XXX,XXX" patterns
+        const budgetMatch = text.match(/budget[:\s]+(?:usd\s*)?\$?([\d,]+(?:\.\d+)?)/i) ||
+          text.match(/total[:\s]+(?:usd\s*)?\$?([\d,]+(?:\.\d+)?)/i) ||
+          text.match(/usd\s+([\d,]+(?:\.\d+)?)/i);
+        if (budgetMatch) {
+          const amount = parseFloat(budgetMatch[1].replace(/,/g, ''));
+          if (amount > 0) {
+            console.log(`[Extract] Override financingNeeded: ${amount}`);
+            result.parsed.financingNeeded = amount;
+          }
+        }
+      }
+
+      // Override debt/equity if found
+      if (!result.parsed.debtAmount || result.parsed.debtAmount === 0) {
+        const debtMatch = text.match(/debt[:\s]+(?:usd\s*)?\$?([\d,]+(?:\.\d+)?)/i) ||
+          text.match(/debt[:\s]+([\d]+)%/i);
+        if (debtMatch && result.parsed.financingNeeded) {
+          const value = parseFloat(debtMatch[1].replace(/,/g, ''));
+          // If it's a percentage, calculate from total
+          if (value <= 100 && debtMatch[0].includes('%')) {
+            result.parsed.debtAmount = (result.parsed.financingNeeded * value) / 100;
+          } else {
+            result.parsed.debtAmount = value;
+          }
+          console.log(`[Extract] Override debtAmount: ${result.parsed.debtAmount}`);
+        }
+      }
+
+      // Override emissions if found in document (handles table format "Scope 1: X tCO2e")
+      if (!result.parsed.currentScope1 || result.parsed.currentScope1 === 0) {
+        const scope1Match = text.match(/scope\s*1[:\s]+(\d+(?:,\d+)?(?:\.\d+)?)\s*(?:tco2e?|tonnes?)/i) ||
+          text.match(/scope\s*1[^:]*baseline[:\s]+(\d+(?:,\d+)?(?:\.\d+)?)/i);
+        if (scope1Match) {
+          result.parsed.currentScope1 = parseFloat(scope1Match[1].replace(/,/g, ''));
+          console.log(`[Extract] Override currentScope1: ${result.parsed.currentScope1}`);
+        }
+      }
+
+      if (!result.parsed.currentScope2 || result.parsed.currentScope2 === 0) {
+        const scope2Match = text.match(/scope\s*2[:\s]+(\d+(?:,\d+)?(?:\.\d+)?)\s*(?:tco2e?|tonnes?)/i) ||
+          text.match(/scope\s*2[^:]*baseline[:\s]+(\d+(?:,\d+)?(?:\.\d+)?)/i);
+        if (scope2Match) {
+          result.parsed.currentScope2 = parseFloat(scope2Match[1].replace(/,/g, ''));
+          console.log(`[Extract] Override currentScope2: ${result.parsed.currentScope2}`);
+        }
+      }
+
+      // Override description if document is substantive but AI returned short description
+      if (!result.parsed.description || result.parsed.description.length < 50) {
+        // If document has substantial content, extract a meaningful description
+        if (text.length > 500) {
+          // Look for executive summary or project description section
+          const descMatch = text.match(/executive\s+summary[:\s]*([^#\n]{100,500})/i) ||
+            text.match(/project\s+description[:\s]*([^#\n]{100,500})/i) ||
+            text.match(/aims?\s+to\s+([^.]{50,300})/i);
+          if (descMatch) {
+            result.parsed.description = descMatch[1].trim().substring(0, 500);
+            console.log(`[Extract] Override description from document section`);
+          } else if (text.length > 1000) {
+            // Fallback: use first substantial paragraph
+            result.parsed.description = text.substring(0, 500).replace(/\s+/g, ' ').trim();
+            console.log(`[Extract] Override description with document excerpt`);
+          }
+        }
+      }
+
       return result.parsed;
     }
 
