@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callAI } from '@/lib/ai/api-handler';
+import { callLMAApi } from '@/lib/ai/lma-api-handler';
+import type { ComponentSections } from '../lma/types';
 
 // PDF parsing with pdf-parse
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
@@ -38,6 +40,7 @@ async function extractProjectData(text: string): Promise<{
   statedReductionPercent: number | null;
   targetYear: number | null;
   verificationStatus: string;
+  hasPublishedPlan: string;
 }> {
   const systemPrompt = `You are an expert at extracting project information from documents for transition finance assessments. Extract ALL requested fields with precision. For numeric fields, extract actual numbers mentioned in the document. Respond in JSON format only.`;
 
@@ -74,7 +77,18 @@ IF the document does NOT contain these keywords → do NOT add them (no hallucin
 19. totalTargetEmissions: TOTAL target emissions in tCO2e/year (sum all sources if itemized, number only)
 20. statedReductionPercent: The stated emissions reduction percentage if mentioned (e.g., "28% reduction" = 28)
 21. targetYear: Target year for emissions reduction (e.g., 2030, or null if not mentioned)
-22. verificationStatus: Any third-party verification or certification mentioned
+22. verificationStatus: Extract verification status. Look for:
+    - "third-party verification", "independent verification", "external audit"
+    - "SPO" (Second Party Opinion), "second party opinion"
+    - "verified by DNV/KPMG/EY/Deloitte"
+    - "annual verification", "verification commitment"
+    - If ANY verification mention exists, return the relevant text. If none found, return empty string.
+23. hasPublishedPlan: Does the document indicate a published/board-approved transition plan? Look for:
+    - "published transition plan/strategy"
+    - "board-approved climate strategy"
+    - "entity-level transition strategy"
+    - "corporate transition roadmap"
+    Return "yes" if found, "no" if explicitly stated as not having one, empty if unclear
 
 IMPORTANT EMISSIONS EXTRACTION:
 - For emissions fields, look for numbers like "12,500 tCO2e" or "current emissions: 15,000 tonnes CO2"
@@ -85,8 +99,14 @@ IMPORTANT EMISSIONS EXTRACTION:
 
 For financing, convert "USD 25 million" to 25000000.
 
-Document text:
-${text.substring(0, 8000)}
+Document text (beginning and end to capture all sections):
+
+--- BEGINNING ---
+${text.substring(0, 6000)}
+
+--- END OF DOCUMENT ---
+${text.length > 8000 ? text.substring(text.length - 4000) : ''}
+--- END ---
 
 Respond in JSON format only:
 {
@@ -111,7 +131,8 @@ Respond in JSON format only:
   "totalTargetEmissions": null,
   "statedReductionPercent": null,
   "targetYear": null,
-  "verificationStatus": ""
+  "verificationStatus": "",
+  "hasPublishedPlan": ""
 }`;
 
   try {
@@ -124,6 +145,43 @@ Respond in JSON format only:
     });
 
     if (result.success && result.parsed) {
+      // PROGRAMMATIC OVERRIDES: Check full document for compliance phrases
+      // This is more reliable than AI extraction for specific keywords
+      const fullTextLower = text.toLowerCase();
+
+      // Override hasPublishedPlan if compliance phrases found anywhere in document
+      const hasPublishedPlanPhrases = [
+        'this document constitutes the published transition strategy',
+        'published transition plan',
+        'published transition strategy',
+        'board-approved transition',
+        'entity-level transition strategy',
+        'lma compliance statements'
+      ];
+      const foundPublishedPlan = hasPublishedPlanPhrases.some(phrase => fullTextLower.includes(phrase));
+      if (foundPublishedPlan && result.parsed.hasPublishedPlan !== 'yes') {
+        console.log('[Extract] Override hasPublishedPlan to "yes" (found compliance phrase in full text)');
+        result.parsed.hasPublishedPlan = 'yes';
+      }
+
+      // Override verificationStatus if verification phrases found anywhere in document
+      const verificationPhrases = [
+        'third-party verification by an independent auditor',
+        'annual third-party verification',
+        'annual verification',
+        'third-party verification',
+        'independent auditor (dnv',
+        'verified by dnv',
+        'verified by kpmg',
+        'second party opinion (spo)',
+        'second party opinion will be obtained'
+      ];
+      const foundVerification = verificationPhrases.find(phrase => fullTextLower.includes(phrase));
+      if (foundVerification && (!result.parsed.verificationStatus || result.parsed.verificationStatus.length < 5)) {
+        console.log(`[Extract] Override verificationStatus (found: "${foundVerification}")`);
+        result.parsed.verificationStatus = `Third-party verification commitment: ${foundVerification}`;
+      }
+
       return result.parsed;
     }
 
@@ -154,6 +212,97 @@ Respond in JSON format only:
       statedReductionPercent: null,
       targetYear: null,
       verificationStatus: '',
+      hasPublishedPlan: '',
+    };
+  }
+}
+
+// Extract LMA component sections from document text for AI evaluation
+async function extractComponentSections(text: string): Promise<ComponentSections> {
+  console.log(`[Component Sections] Starting extraction from ${text.length} chars of text`);
+  console.log(`[Component Sections] Document preview (first 500 chars): ${text.substring(0, 500).replace(/\n/g, ' ')}`);
+  console.log(`[Component Sections] Document preview (last 500 chars): ${text.substring(text.length - 500).replace(/\n/g, ' ')}`);
+
+
+  const systemPrompt = `You are a JSON extraction assistant. You MUST respond with valid JSON only. No explanations, no markdown, just pure JSON.`;
+
+  const userPrompt = `Extract content from this transition finance document for 5 LMA components.
+
+DOCUMENT:
+${text.substring(0, 12000)}
+
+---
+
+Extract relevant quotes/content for each component. Respond with ONLY this JSON structure (no other text):
+
+{"strategy":"content about transition strategy, climate targets, Paris Agreement, SBTi here","useOfProceeds":"content about how funds are used, eligible activities, emissions reductions here","selection":"content about project selection criteria, governance, screening here","management":"content about fund tracking, accounts, allocation here","reporting":"content about reporting, verification, audits, KPIs here"}`;
+
+  try {
+    // Use dedicated LMA API (ASI1) which handles JSON better
+    const result = await callLMAApi({
+      systemPrompt,
+      userPrompt,
+      temperature: 0.1,
+      maxTokens: 6000
+    });
+
+    console.log(`[Component Sections] ASI1 result - success: ${result.success}, has parsed: ${!!result.parsed}`);
+
+    if (!result.success) {
+      console.error('[Component Sections] ASI1 call failed:', result.error);
+    }
+
+    // Debug: log raw content preview
+    if (result.content) {
+      console.log(`[Component Sections] Raw content preview (first 500 chars): ${result.content.substring(0, 500)}`);
+    }
+
+    if (result.success && result.parsed) {
+      const sections = {
+        strategy: result.parsed.strategy || '',
+        useOfProceeds: result.parsed.useOfProceeds || '',
+        selection: result.parsed.selection || '',
+        management: result.parsed.management || '',
+        reporting: result.parsed.reporting || '',
+      };
+
+      // Log what was extracted
+      console.log(`[Component Sections] Extracted - strategy: ${sections.strategy.length} chars, proceeds: ${sections.useOfProceeds.length} chars, selection: ${sections.selection.length} chars, management: ${sections.management.length} chars, reporting: ${sections.reporting.length} chars`);
+
+      return sections;
+    }
+
+    // If parsed is empty, try to extract from raw content
+    if (result.success && result.content) {
+      console.log('[Component Sections] Attempting to parse from raw content...');
+      try {
+        const jsonMatch = result.content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          const sections = {
+            strategy: parsed.strategy || '',
+            useOfProceeds: parsed.useOfProceeds || '',
+            selection: parsed.selection || '',
+            management: parsed.management || '',
+            reporting: parsed.reporting || '',
+          };
+          console.log(`[Component Sections] Parsed from raw - strategy: ${sections.strategy.length} chars, proceeds: ${sections.useOfProceeds.length} chars`);
+          return sections;
+        }
+      } catch (parseErr) {
+        console.error('[Component Sections] JSON parse from content failed:', parseErr);
+      }
+    }
+
+    throw new Error(result.error || 'Failed to extract component sections');
+  } catch (error) {
+    console.error('[Component Sections] Extraction error:', error);
+    return {
+      strategy: '',
+      useOfProceeds: '',
+      selection: '',
+      management: '',
+      reporting: '',
     };
   }
 }
@@ -191,14 +340,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Extract structured data using AI
-    const extractedData = await extractProjectData(text);
+    // Extract structured data and component sections in parallel
+    const [extractedData, componentSections] = await Promise.all([
+      extractProjectData(text),
+      extractComponentSections(text)
+    ]);
 
     return NextResponse.json({
       success: true,
       extractedText: text.substring(0, 2000), // Preview of extracted text
       rawDocumentText: text, // Full text for greenwashing analysis
       extractedFields: extractedData,
+      componentSections, // LMA component sections for AI evaluation
       textLength: text.length,
     });
 

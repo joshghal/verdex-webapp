@@ -7,6 +7,26 @@ import type {
   RiskLevel
 } from '../types';
 
+import {
+  evaluateGreenwashingWithAI,
+  aiScoreToGreenwashPenalty,
+  type AIGreenwashResult,
+  type ProjectDataForGreenwash
+} from './ai-greenwash-evaluator';
+
+// Enhanced assessment type with AI fields
+export interface EnhancedGreenwashingAssessment extends GreenwashingAssessment {
+  aiEvaluationUsed: boolean;
+  aiScore?: number;
+  aiRiskLevel?: AIGreenwashResult['riskLevel'];
+  aiConfidence?: number;
+  aiBreakdown?: AIGreenwashResult['components'];
+  aiSummary?: string;
+  aiTopConcerns?: string[];
+  aiPositiveFindings?: string[];
+  combinedPenalty: number;
+}
+
 const RED_FLAG_PATTERNS: {
   id: string;
   category: RedFlag['category'];
@@ -48,11 +68,16 @@ const RED_FLAG_PATTERNS: {
     severity: 'high',
     pattern: (project) => {
       const text = (project.description + ' ' + project.transitionStrategy).toLowerCase();
-      // Claims of 99%+ reduction, "guaranteed" returns, "zero" operational costs
-      return text.includes('99') || text.includes('100%') ||
-        text.includes('guaranteed') || text.includes('no risk') ||
-        text.includes('zero cost') || text.includes('500%') ||
-        text.includes('unlimited');
+      // Only flag ACTUAL exaggerated claims, not legitimate uses of numbers
+      // "100% renewable" is legitimate; "100% guaranteed returns" is not
+      // "99% reduction" might be exaggerated; "ISO 14064-1:2019" is not
+      const hasExaggeratedReduction = /\b(99|100)\s*%\s*(reduction|decrease|cut)/.test(text);
+      const hasGuaranteed = text.includes('guaranteed return') || text.includes('guaranteed profit') ||
+        text.includes('guaranteed success') || text.includes('risk-free');
+      const hasZeroCost = text.includes('zero cost') || text.includes('no cost');
+      const hasUnrealistic = text.includes('500%') || text.includes('1000%') ||
+        text.includes('unlimited return') || text.includes('unlimited profit');
+      return hasExaggeratedReduction || hasGuaranteed || hasZeroCost || hasUnrealistic;
     },
     description: 'Exaggerated or unrealistic claims detected - potential greenwashing',
     recommendation: 'Remove exaggerated claims and provide realistic, verifiable projections'
@@ -167,7 +192,26 @@ const RED_FLAG_PATTERNS: {
     id: 'no_verification',
     category: 'verification',
     severity: 'medium',
-    pattern: (project) => !project.thirdPartyVerification,
+    pattern: (project) => {
+      // Check explicit boolean flag
+      if (project.thirdPartyVerification) return false;
+
+      // Also check document text for explicit verification statements
+      const text = (project.rawDocumentText || project.description + ' ' + project.transitionStrategy).toLowerCase();
+      const hasExplicitVerification =
+        text.includes('third-party verification has been completed') ||
+        text.includes('third party verification has been completed') ||
+        text.includes('independent verifier confirming') ||
+        text.includes('verified by dnv') ||
+        text.includes('verified by kpmg') ||
+        text.includes('verified by ey') ||
+        text.includes('verified by deloitte') ||
+        text.includes('spo') && text.includes('completed') ||
+        text.includes('second party opinion') && text.includes('obtained');
+
+      // Only flag if no verification AND no explicit statement
+      return !hasExplicitVerification;
+    },
     description: 'No third-party verification of transition claims',
     recommendation: 'Engage independent verifier (SBTi, second-party opinion, or assurance provider)'
   },
@@ -200,12 +244,27 @@ const RED_FLAG_PATTERNS: {
     severity: 'high',
     pattern: (project) => {
       const text = (project.rawDocumentText || project.description + ' ' + project.transitionStrategy).toLowerCase();
-      // Only trigger if there's explicit mention of document having inconsistencies
-      // NOT if it mentions inconsistency in general context (e.g., "we address potential inconsistencies")
-      const hasIssue = (text.includes('this document') || text.includes('the document') || text.includes('our document')) &&
-        (text.includes('inconsistenc') || text.includes('discrepanc') || text.includes('contradicts'));
-      const hasMathIssue = text.includes('mathematically impossible') || text.includes('does not add up');
-      return hasIssue || hasMathIssue;
+      // Only trigger on ACTUAL statements of inconsistency, not mentions in positive/preventive context
+      // e.g., "document has inconsistencies" = bad, "ensure consistency" = good
+      const negativePatterns = [
+        'document contains inconsistenc',
+        'document has inconsistenc',
+        'found inconsistenc',
+        'identified inconsistenc',
+        'noted discrepanc',
+        'contains discrepanc',
+        'figures contradict',
+        'numbers contradict',
+        'data contradicts'
+      ];
+      const hasNegativePattern = negativePatterns.some(p => text.includes(p));
+      const hasMathIssue = text.includes('mathematically impossible') || text.includes('does not add up') ||
+        text.includes('numbers do not match') || text.includes('figures do not match');
+      // Exempt if it's in positive context (ensuring, maintaining, addressing consistency)
+      const positiveContext = text.includes('ensure consistenc') || text.includes('maintain consistenc') ||
+        text.includes('address any inconsistenc') || text.includes('resolve any inconsistenc') ||
+        text.includes('prevent inconsistenc');
+      return (hasNegativePattern || hasMathIssue) && !positiveContext;
     },
     description: 'Document contains explicit inconsistencies or contradictions',
     recommendation: 'Resolve all internal inconsistencies before submitting - this is a major red flag for DFIs'
@@ -243,9 +302,25 @@ const RED_FLAG_PATTERNS: {
     severity: 'high',
     pattern: (project) => {
       const text = (project.rawDocumentText || project.description + ' ' + project.transitionStrategy).toLowerCase();
-      return (text.includes('no online presence') || text.includes('no attachment') ||
-        text.includes('cannot be verified') || text.includes('unverifiable')) &&
-        (text.includes('audit') || text.includes('verification') || text.includes('certified'));
+      // Only trigger if there's explicit statement that claimed credentials cannot be verified
+      // NOT standard legal disclaimers or procedural language
+      const unverifiablePatterns = [
+        'audit cannot be verified',
+        'verification cannot be confirmed',
+        'certification cannot be verified',
+        'credentials cannot be verified',
+        'auditor has no online presence',
+        'verifier has no online presence',
+        'no record of certification',
+        'certification not found',
+        'unverifiable audit',
+        'unverifiable certification'
+      ];
+      const hasUnverifiable = unverifiablePatterns.some(p => text.includes(p));
+      // Exempt if document mentions pending verification or future verification
+      const pendingContext = text.includes('verification will be') || text.includes('verification to be') ||
+        text.includes('audit will be') || text.includes('certification pending');
+      return hasUnverifiable && !pendingContext;
     },
     description: 'Claimed verification or certification cannot be verified',
     recommendation: 'Provide verifiable third-party credentials from recognized auditors (DNV, KPMG, EY, etc.)'
@@ -256,8 +331,19 @@ const RED_FLAG_PATTERNS: {
     severity: 'high',
     pattern: (project) => {
       const text = (project.rawDocumentText || project.description + ' ' + project.transitionStrategy).toLowerCase();
-      return text.includes('however') && (text.includes('states') || text.includes('claims')) &&
-        (text.includes('reduction') || text.includes('emission') || text.includes('tonne'));
+      // Only trigger on explicit conflicting statements, not standard narrative text
+      // e.g., "The document states X however claims Y" = conflict
+      // e.g., "We will reduce emissions; however, baseline is high" = not a conflict
+      const conflictPatterns = [
+        'however, the document states',
+        'however, it claims',
+        'but states a different',
+        'contradicts the stated',
+        'does not match the stated',
+        'inconsistent with stated',
+        'differs from the claimed'
+      ];
+      return conflictPatterns.some(p => text.includes(p));
     },
     description: 'Conflicting emissions or reduction figures within document',
     recommendation: 'Ensure all emissions figures are consistent throughout the document'
@@ -268,12 +354,26 @@ const RED_FLAG_PATTERNS: {
     severity: 'medium',
     pattern: (project) => {
       const text = (project.rawDocumentText || project.description + ' ' + project.transitionStrategy + ' ' + project.projectType).toLowerCase();
-      // Only trigger if project explicitly involves artisanal mining operations
-      // Not if it's mentioned in due diligence context (e.g., "we do not use artisanal mining")
+      // Only trigger if project EXPLICITLY involves artisanal mining operations
+      // Not if it's mentioned in due diligence context (ensuring no artisanal mining)
       const hasArtisanal = text.includes('artisanal') && text.includes('mining');
-      const isNegated = text.includes('no artisanal') || text.includes('not artisanal') ||
-        text.includes('avoid artisanal') || text.includes('exclude artisanal');
-      return hasArtisanal && !isNegated;
+      if (!hasArtisanal) return false;
+
+      // Extensive list of negation/due diligence contexts that should NOT trigger
+      const dueDiligencePatterns = [
+        'no artisanal', 'not artisanal', 'avoid artisanal', 'exclude artisanal',
+        'prohibit artisanal', 'prevent artisanal', 'free from artisanal',
+        'does not involve artisanal', 'does not include artisanal',
+        'does not source from artisanal', 'does not use artisanal',
+        'ensure no artisanal', 'ensures no artisanal', 'ensuring no artisanal',
+        'without artisanal', 'zero artisanal', 'eliminate artisanal',
+        'artisanal mining risk', 'artisanal mining due diligence',
+        'artisanal mining standards', 'artisanal mining compliance',
+        'oecd due diligence', 'responsible mineral', 'conflict-free',
+        'traceability', 'supply chain due diligence'
+      ];
+      const isDueDiligenceContext = dueDiligencePatterns.some(p => text.includes(p));
+      return !isDueDiligenceContext;
     },
     description: 'Artisanal mining operations carry elevated ESG and supply chain risks',
     recommendation: 'Demonstrate compliance with OECD Due Diligence Guidance for responsible mineral supply chains'
@@ -310,7 +410,22 @@ const POSITIVE_PATTERNS: {
     indicator: 'Published transition strategy exists'
   },
   {
-    check: (p) => p.thirdPartyVerification,
+    check: (p) => {
+      // Check boolean flag
+      if (p.thirdPartyVerification) return true;
+
+      // Also check document text for explicit verification statements
+      const text = (p.rawDocumentText || p.description + ' ' + p.transitionStrategy).toLowerCase();
+      return text.includes('third-party verification has been completed') ||
+        text.includes('third party verification has been completed') ||
+        text.includes('independent verifier confirming') ||
+        text.includes('verified by dnv') ||
+        text.includes('verified by kpmg') ||
+        text.includes('verified by ey') ||
+        text.includes('verified by deloitte') ||
+        (text.includes('spo') && text.includes('completed')) ||
+        (text.includes('second party opinion') && text.includes('obtained'));
+    },
     indicator: 'Third-party verification in place'
   },
   {
@@ -431,4 +546,113 @@ function generateRecommendations(redFlags: RedFlag[], overallRisk: RiskLevel): s
   }
 
   return recommendations;
+}
+
+/**
+ * Enhanced greenwashing detection with AI
+ * Combines rule-based detection with AI-powered analysis
+ */
+export async function detectGreenwashingEnhanced(
+  project: ProjectInput,
+  documentText?: string
+): Promise<EnhancedGreenwashingAssessment> {
+  // First, run rule-based detection
+  const ruleBasedResult = detectGreenwashing(project);
+
+  // If no document text, return rule-based only
+  if (!documentText || documentText.length < 100) {
+    console.log('[Greenwash Detector] No document text provided, using rule-based only');
+    return {
+      ...ruleBasedResult,
+      aiEvaluationUsed: false,
+      combinedPenalty: calculatePenaltyFromRiskScore(ruleBasedResult.riskScore)
+    };
+  }
+
+  // Prepare project data for AI evaluation
+  const projectData: ProjectDataForGreenwash = {
+    projectName: project.projectName || 'Unknown Project',
+    sector: project.sector || 'unknown',
+    description: project.description || '',
+    transitionStrategy: project.transitionStrategy || '',
+    targetYear: project.targetYear || 2030,
+    currentEmissions: project.currentEmissions || { scope1: 0, scope2: 0 },
+    targetEmissions: project.targetEmissions || { scope1: 0, scope2: 0 },
+    totalCost: project.totalCost || 0,
+    hasPublishedPlan: project.hasPublishedPlan || false,
+    thirdPartyVerification: project.thirdPartyVerification || false
+  };
+
+  // Run AI evaluation
+  console.log('[Greenwash Detector] Running AI-enhanced evaluation...');
+  const aiResult = await evaluateGreenwashingWithAI(documentText, projectData);
+
+  if (!aiResult.success) {
+    console.log('[Greenwash Detector] AI evaluation failed, using rule-based only');
+    return {
+      ...ruleBasedResult,
+      aiEvaluationUsed: false,
+      combinedPenalty: calculatePenaltyFromRiskScore(ruleBasedResult.riskScore)
+    };
+  }
+
+  // Combine results: 60% AI weight, 40% rule-based weight
+  const aiPenalty = aiScoreToGreenwashPenalty(aiResult.totalScore);
+  const ruleBasedPenalty = calculatePenaltyFromRiskScore(ruleBasedResult.riskScore);
+  const combinedPenalty = Math.round(aiPenalty * 0.6 + ruleBasedPenalty * 0.4);
+
+  // Determine combined risk level
+  let combinedRiskLevel: RiskLevel;
+  if (combinedPenalty >= 15) {
+    combinedRiskLevel = 'high';
+  } else if (combinedPenalty >= 6) {
+    combinedRiskLevel = 'medium';
+  } else {
+    combinedRiskLevel = 'low';
+  }
+
+  // Merge AI concerns into recommendations if not already present
+  const enhancedRecommendations = [...ruleBasedResult.recommendations];
+  aiResult.topConcerns.forEach(concern => {
+    if (!enhancedRecommendations.some(r => r.toLowerCase().includes(concern.toLowerCase().substring(0, 20)))) {
+      enhancedRecommendations.push(`[AI] ${concern}`);
+    }
+  });
+
+  // Merge AI positive findings into positive indicators
+  const enhancedPositiveIndicators = [...ruleBasedResult.positiveIndicators];
+  aiResult.positiveFindings.forEach(finding => {
+    if (!enhancedPositiveIndicators.some(p => p.toLowerCase().includes(finding.toLowerCase().substring(0, 20)))) {
+      enhancedPositiveIndicators.push(finding);
+    }
+  });
+
+  console.log(`[Greenwash Detector] AI: ${aiResult.totalScore}/100, Rule-based: ${ruleBasedResult.riskScore}, Combined penalty: ${combinedPenalty}`);
+
+  return {
+    overallRisk: combinedRiskLevel,
+    riskScore: ruleBasedResult.riskScore,
+    redFlags: ruleBasedResult.redFlags,
+    positiveIndicators: enhancedPositiveIndicators,
+    recommendations: enhancedRecommendations.slice(0, 8),
+    aiEvaluationUsed: true,
+    aiScore: aiResult.totalScore,
+    aiRiskLevel: aiResult.riskLevel,
+    aiConfidence: aiResult.confidence,
+    aiBreakdown: aiResult.components,
+    aiSummary: aiResult.summary,
+    aiTopConcerns: aiResult.topConcerns,
+    aiPositiveFindings: aiResult.positiveFindings,
+    combinedPenalty
+  };
+}
+
+/**
+ * Convert rule-based risk score (0-100, higher=more risk) to penalty
+ */
+function calculatePenaltyFromRiskScore(riskScore: number): number {
+  if (riskScore >= 70) return 20; // High risk
+  if (riskScore >= 40) return 10; // Medium risk
+  if (riskScore >= 20) return 5;  // Low-medium risk
+  return 0; // Low risk
 }

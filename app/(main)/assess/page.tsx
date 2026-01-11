@@ -54,6 +54,7 @@ interface ExtractedFields {
   statedReductionPercent: number | null;
   targetYear: number | null;
   verificationStatus: string;
+  hasPublishedPlan: string;
 }
 
 export default function AssessPage() {
@@ -189,6 +190,7 @@ export default function AssessPage() {
 
       const fields: ExtractedFields = uploadResult.extractedFields;
       const rawDocumentText = uploadResult.rawDocumentText || '';
+      const componentSections = uploadResult.componentSections; // LMA component sections for AI evaluation
 
       // Build assessment request from extracted data
       const assessmentData = {
@@ -216,9 +218,13 @@ export default function AssessPage() {
         statedReductionPercent: fields.statedReductionPercent || undefined,
         targetYear: fields.targetYear || 2030,
         transitionStrategy: fields.transitionPlan || '',
-        hasPublishedPlan: !!fields.transitionPlan,
-        thirdPartyVerification: !!fields.verificationStatus,
+        // Use explicit hasPublishedPlan extraction, or fallback to checking transitionPlan
+        hasPublishedPlan: fields.hasPublishedPlan === 'yes' || !!fields.transitionPlan,
+        // Check for any verification mention
+        thirdPartyVerification: !!fields.verificationStatus && fields.verificationStatus.length > 3,
         rawDocumentText: rawDocumentText,
+        // LMA component sections for AI-powered evaluation
+        componentSections: componentSections,
       };
 
       setUploadProgress('Running LMA assessment...');

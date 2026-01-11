@@ -12,6 +12,12 @@ import { formatClauseContent } from '@/lib/clauseFormatter';
 // Register ScrollTrigger plugin
 gsap.registerPlugin(ScrollTrigger);
 
+// ============================================================================
+// FEATURE FLAGS
+// ============================================================================
+// Toggle AI greenwashing display (disabled to focus on LMA 5 components)
+const SHOW_AI_GREENWASH_SECTION = false;
+
 interface AssessmentResult {
   projectName: string;
   country: string;
@@ -72,6 +78,31 @@ interface AssessmentResult {
     redFlags: { description: string; recommendation: string; severity: string }[];
     positiveIndicators: string[];
     recommendations: string[];
+    // AI-enhanced fields
+    aiEvaluationUsed?: boolean;
+    aiScore?: number;
+    aiRiskLevel?: 'low' | 'medium-low' | 'medium' | 'medium-high' | 'high';
+    aiConfidence?: number;
+    aiBreakdown?: {
+      component: string;
+      componentName: string;
+      maxScore: number;
+      score: number;
+      confidence: number;
+      findings: {
+        criterion: string;
+        maxPoints: number;
+        points: number;
+        status: 'strong' | 'adequate' | 'weak' | 'missing';
+        evidence: string;
+        concern?: string;
+      }[];
+      overallAssessment: string;
+      recommendations: string[];
+    }[];
+    aiSummary?: string;
+    aiTopConcerns?: string[];
+    aiPositiveFindings?: string[];
   };
   dfiMatches: {
     id: string;
@@ -89,6 +120,26 @@ interface AssessmentResult {
   countryInfo: any;
   nextSteps: string[];
   assessmentDate: string;
+  // NEW: AI evaluation metadata
+  aiEvaluationUsed?: boolean;
+  lmaEvaluationDetails?: {
+    component: string;
+    componentName: string;
+    maxScore: number;
+    score: number;
+    confidence: number;
+    subScores: {
+      criterion: string;
+      maxPoints: number;
+      points: number;
+      status: 'met' | 'partial' | 'missing';
+      evidence: string;
+      reasoning: string;
+    }[];
+    overallReasoning: string;
+    improvements: string[];
+    keyQuotes: { quote: string; relevance: string }[];
+  }[];
 }
 
 interface ClauseAdvice {
@@ -392,7 +443,7 @@ function exportToPDF(result: AssessmentResult, relevantClauses?: RelevantClause[
     yPos = (doc as any).lastAutoTable.finalY + 10;
   }
 
-  // Greenwashing Risk
+  // Greenwashing Risk - manual validation (always shown)
   checkNewPage(50);
   doc.setFontSize(14);
   doc.setTextColor(0, 0, 0);
@@ -1271,8 +1322,17 @@ export default function ResultsPage() {
             {/* LMA Component Scores */}
             <div className="bg-white rounded-2xl border border-gray-100 result-card overflow-hidden">
               <div className="px-6 py-5 border-b border-gray-100">
-                <h2 className="text-lg font-display font-medium text-gray-900">LMA Transition Loan Requirements</h2>
-                <p className="text-sm text-gray-500 mt-1">Assessment against Loan Market Association principles</p>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h2 className="text-lg font-display font-medium text-gray-900">LMA Transition Loan Requirements</h2>
+                    <p className="text-sm text-gray-500 mt-1">Assessment against Loan Market Association principles</p>
+                  </div>
+                  {result.aiEvaluationUsed && (
+                    <span className="bg-gradient-to-r from-verdex-600 to-teal-500 text-white text-xs px-3 py-1.5 rounded-full font-medium">
+                      AI Evaluated
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="divide-y divide-gray-100">
@@ -1280,6 +1340,11 @@ export default function ResultsPage() {
                   const percentage = Math.round((component.score / component.maxScore) * 100);
                   const isHigh = percentage >= 70;
                   const isMedium = percentage >= 50 && percentage < 70;
+
+                  // Get AI evaluation details for this component if available
+                  const aiDetails = result.lmaEvaluationDetails?.find(
+                    d => d.componentName === component.name
+                  );
 
                   return (
                     <div key={idx} className={`px-6 py-5 ${idx % 2 === 1 ? 'bg-gray-100/50' : ''}`}>
@@ -1293,6 +1358,19 @@ export default function ResultsPage() {
                             <span className={`text-sm font-medium ${isHigh ? 'text-verdex-600' : isMedium ? 'text-amber-600' : 'text-rose-600'}`}>
                               {component.score}/{component.maxScore}
                             </span>
+                            {/* Show confidence level if AI evaluated */}
+                            {/* {aiDetails && aiDetails.confidence > 0 && (
+                              <>
+                                <span className="text-gray-300">·</span>
+                                <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                  aiDetails.confidence >= 70 ? 'bg-verdex-50 text-verdex-700' :
+                                  aiDetails.confidence >= 40 ? 'bg-amber-50 text-amber-700' :
+                                  'bg-gray-100 text-gray-600'
+                                }`}>
+                                  {aiDetails.confidence}% confidence
+                                </span>
+                              </>
+                            )} */}
                           </div>
                         </div>
                         {/* Compact progress indicator */}
@@ -1331,6 +1409,40 @@ export default function ResultsPage() {
                           </div>
                         ))}
                       </div>
+
+                      {/* AI Evaluation Details - Key Quotes & Improvements */}
+                      {aiDetails && (aiDetails.keyQuotes?.length > 0 || aiDetails.improvements?.length > 0) && (
+                        <div className="mt-4 pt-4 border-t border-gray-100">
+                          {/* Key Quotes */}
+                          {aiDetails.keyQuotes?.length > 0 && (
+                            <div className="mb-3">
+                              <p className="text-xs font-medium text-gray-500 mb-2">Key Evidence from Document:</p>
+                              <div className="space-y-2">
+                                {aiDetails.keyQuotes.slice(0, 2).map((q, qi) => (
+                                  <div key={qi} className="bg-gray-50 rounded-lg px-3 py-2">
+                                    <p className="text-xs text-gray-700 italic">"{q.quote}"</p>
+                                    <p className="text-xs text-gray-500 mt-1">{q.relevance}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {/* Improvements */}
+                          {aiDetails.improvements?.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-gray-500 mb-2">Suggested Improvements:</p>
+                              <ul className="space-y-1">
+                                {aiDetails.improvements.slice(0, 3).map((imp, ii) => (
+                                  <li key={ii} className="text-xs text-gray-600 flex items-start gap-2">
+                                    <span className="text-verdex-500 mt-0.5">→</span>
+                                    {imp}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1468,7 +1580,7 @@ export default function ResultsPage() {
               </div>
             )}
 
-            {/* Greenwashing Risk */}
+            {/* Greenwashing Risk - manual validation always shown, AI analysis conditionally */}
             <div className="bg-white rounded-2xl border border-gray-100 result-card overflow-hidden">
               <div className="px-6 py-5 border-b border-gray-100">
                 <div className="flex items-center justify-between">
@@ -1566,6 +1678,130 @@ export default function ResultsPage() {
                         </p>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {/* AI Greenwashing Analysis Breakdown - conditionally shown based on feature flag */}
+                {SHOW_AI_GREENWASH_SECTION && result.greenwashingRisk.aiEvaluationUsed && result.greenwashingRisk.aiBreakdown && (
+                  <div className="mt-6 pt-5 border-t border-gray-100">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                        <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">AI Analysis Breakdown</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-gray-500">
+                        <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full font-medium">
+                          {result.greenwashingRisk.aiScore}/100
+                        </span>
+                        <span className="text-gray-400">
+                          {result.greenwashingRisk.aiConfidence}% confidence
+                        </span>
+                      </div>
+                    </div>
+
+                    {result.greenwashingRisk.aiSummary && (
+                      <p className="text-sm text-gray-600 mb-4 p-3 bg-gray-50 rounded-lg">
+                        {result.greenwashingRisk.aiSummary}
+                      </p>
+                    )}
+
+                    <div className="space-y-4">
+                      {result.greenwashingRisk.aiBreakdown.map((component, idx) => (
+                        <div key={idx} className="border border-gray-100 rounded-lg overflow-hidden">
+                          <div className="px-4 py-3 bg-gray-50 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-sm text-gray-900">{component.componentName}</span>
+                              <span className="text-xs text-gray-400">({component.confidence}% conf.)</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${
+                                    component.score >= 20 ? 'bg-verdex-500' :
+                                    component.score >= 15 ? 'bg-amber-500' : 'bg-rose-500'
+                                  }`}
+                                  style={{ width: `${(component.score / component.maxScore) * 100}%` }}
+                                />
+                              </div>
+                              <span className={`text-sm font-semibold ${
+                                component.score >= 20 ? 'text-verdex-600' :
+                                component.score >= 15 ? 'text-amber-600' : 'text-rose-600'
+                              }`}>
+                                {component.score}/{component.maxScore}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="px-4 py-3 space-y-2">
+                            {component.findings.map((finding, fIdx) => (
+                              <div key={fIdx} className="flex items-start gap-3 py-1.5">
+                                <span className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${
+                                  finding.status === 'strong' ? 'bg-verdex-500' :
+                                  finding.status === 'adequate' ? 'bg-amber-500' :
+                                  finding.status === 'weak' ? 'bg-orange-500' : 'bg-rose-500'
+                                }`} />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-medium text-gray-700">{finding.criterion}</span>
+                                    <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                      finding.status === 'strong' ? 'bg-verdex-50 text-verdex-700' :
+                                      finding.status === 'adequate' ? 'bg-amber-50 text-amber-700' :
+                                      finding.status === 'weak' ? 'bg-orange-50 text-orange-700' : 'bg-rose-50 text-rose-700'
+                                    }`}>
+                                      {finding.points}/{finding.maxPoints}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-gray-600 mt-0.5">{finding.evidence}</p>
+                                  {finding.concern && (
+                                    <p className="text-xs text-rose-600 mt-0.5 italic">{finding.concern}</p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {component.recommendations.length > 0 && (
+                            <div className="px-4 py-2 bg-blue-50/50 border-t border-gray-100">
+                              <p className="text-xs text-gray-500 mb-1">Recommendations:</p>
+                              <ul className="text-xs text-gray-600 space-y-0.5">
+                                {component.recommendations.slice(0, 3).map((rec, rIdx) => (
+                                  <li key={rIdx} className="flex items-start gap-1.5">
+                                    <span className="text-blue-400">→</span>
+                                    {rec}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* AI Top Concerns & Positive Findings */}
+                    {(result.greenwashingRisk.aiTopConcerns?.length || result.greenwashingRisk.aiPositiveFindings?.length) && (
+                      <div className="mt-4 grid grid-cols-2 gap-4">
+                        {result.greenwashingRisk.aiTopConcerns && result.greenwashingRisk.aiTopConcerns.length > 0 && (
+                          <div className="p-3 bg-rose-50/50 rounded-lg">
+                            <p className="text-xs font-medium text-rose-700 mb-2">Top AI Concerns</p>
+                            <ul className="text-xs text-rose-600 space-y-1">
+                              {result.greenwashingRisk.aiTopConcerns.map((concern, i) => (
+                                <li key={i}>• {concern}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {result.greenwashingRisk.aiPositiveFindings && result.greenwashingRisk.aiPositiveFindings.length > 0 && (
+                          <div className="p-3 bg-verdex-50/50 rounded-lg">
+                            <p className="text-xs font-medium text-verdex-700 mb-2">AI Positive Findings</p>
+                            <ul className="text-xs text-verdex-600 space-y-1">
+                              {result.greenwashingRisk.aiPositiveFindings.map((finding, i) => (
+                                <li key={i}>• {finding}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

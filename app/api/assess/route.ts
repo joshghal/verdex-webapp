@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { matchDFIs, recommendBlendedStructure } from '@/lib/engines/dfi-matcher';
-import { detectGreenwashing } from '@/lib/engines/greenwash-detector';
+import { detectGreenwashing, detectGreenwashingEnhanced, type EnhancedGreenwashingAssessment } from '@/lib/engines/greenwash-detector';
 import { generateKPIRecommendationsAI } from '@/lib/engines/kpi-generator';
 import { getCountryProfile } from '@/lib/data/countries';
+import { evaluateAllComponents, aggregateEvaluation } from '@/lib/engines/lma-evaluator';
 import type { ProjectInput, AfricanCountry, Sector } from '@/lib/types';
+import type { ComponentSections, ExtractedFields, LMAComponentEvaluation } from '../lma/types';
 
 export async function POST(request: NextRequest) {
   try {
@@ -54,41 +56,132 @@ export async function POST(request: NextRequest) {
 
     // Run assessments
     const dfiMatches = matchDFIs(project);
-    const greenwashingRisk = detectGreenwashing(project);
+
+    // Use AI-enhanced greenwashing detection if document text is available
+    const documentText = body.rawDocumentText || body.description + ' ' + body.transitionStrategy;
+    let greenwashingRisk: EnhancedGreenwashingAssessment;
+
+    try {
+      greenwashingRisk = await detectGreenwashingEnhanced(project, documentText);
+      console.log(`[Assess] Greenwashing: AI=${greenwashingRisk.aiEvaluationUsed}, Score=${greenwashingRisk.aiScore}, Penalty=${greenwashingRisk.combinedPenalty}`);
+    } catch (error) {
+      console.error('[Assess] AI greenwashing detection failed, using rule-based:', error);
+      const ruleBasedResult = detectGreenwashing(project);
+      greenwashingRisk = {
+        ...ruleBasedResult,
+        aiEvaluationUsed: false,
+        combinedPenalty: ruleBasedResult.riskScore >= 70 ? 20 : ruleBasedResult.riskScore >= 40 ? 10 : 0
+      };
+    }
+
     const blendedStructure = recommendBlendedStructure(project, dfiMatches);
     const countryProfile = getCountryProfile(project.country);
 
-    // Calculate LMA score (simplified)
-    const lmaScore = calculateLMAScore(project);
+    // Calculate LMA score - use AI evaluation if componentSections provided
+    let lmaScore: { overall: number; components: any[] };
+    let aiEvaluationUsed = false;
+    let lmaEvaluationDetails: LMAComponentEvaluation[] | null = null;
+
+    // Check if componentSections are provided for AI-powered evaluation
+    const componentSections: ComponentSections | undefined = body.componentSections;
+
+    if (componentSections && (componentSections.strategy || componentSections.useOfProceeds)) {
+      // Use new AI-powered LMA evaluation
+      try {
+        const extractedFields: ExtractedFields = {
+          projectName: body.projectName,
+          country: body.country,
+          sector: body.sector,
+          projectType: body.projectType,
+          description: body.description,
+          transitionPlan: body.transitionStrategy,
+          verificationStatus: body.thirdPartyVerification ? 'verified' : undefined,
+          totalBaselineEmissions: body.totalBaselineEmissions,
+          totalTargetEmissions: body.totalTargetEmissions,
+          statedReductionPercent: body.statedReductionPercent,
+          targetYear: body.targetYear,
+        };
+
+        const projectContext = {
+          projectName: body.projectName,
+          country: body.country,
+          sector: body.sector,
+          projectType: body.projectType,
+          description: body.description,
+        };
+
+        const aiResult = await evaluateAllComponents(
+          extractedFields,
+          componentSections,
+          projectContext
+        );
+
+        if (aiResult.success) {
+          aiEvaluationUsed = true;
+          lmaEvaluationDetails = aiResult.components;
+
+          // Convert AI evaluation to the existing format
+          lmaScore = {
+            overall: aiResult.totalScore,
+            components: aiResult.components.map(c => ({
+              name: c.componentName,
+              score: c.score,
+              maxScore: c.maxScore,
+              feedback: c.subScores.map(s => ({
+                status: s.status,
+                description: s.criterion + (s.evidence ? `: ${s.evidence}` : ''),
+                action: s.reasoning
+              }))
+            }))
+          };
+        } else {
+          // Fall back to keyword-based if AI fails
+          console.log('[Assess API] AI evaluation failed, using keyword fallback');
+          lmaScore = calculateLMAScore(project);
+        }
+      } catch (error) {
+        console.error('[Assess API] AI evaluation error:', error);
+        lmaScore = calculateLMAScore(project);
+      }
+    } else {
+      // Use existing keyword-based evaluation
+      lmaScore = calculateLMAScore(project);
+    }
 
     // Generate KPI and SPT recommendations using AI (with fallback)
     const kpiRecommendations = await generateKPIRecommendationsAI(project);
 
     // Apply greenwashing penalty to overall score
-    // Each individual red flag directly subtracts from the score based on severity
     let adjustedScore = lmaScore.overall;
     let greenwashingPenalty = 0;
 
-    // Calculate penalty from individual red flags - more sensitive approach
-    for (const flag of greenwashingRisk.redFlags) {
-      switch (flag.severity) {
-        case 'high':
-          greenwashingPenalty += 10; // High severity: -10 points per flag
-          break;
-        case 'medium':
-          greenwashingPenalty += 6; // Medium severity: -6 points per flag
-          break;
-        case 'low':
-          greenwashingPenalty += 3; // Low severity: -3 points per flag
-          break;
+    // Use AI-enhanced penalty if available, otherwise calculate from red flags
+    if (greenwashingRisk.aiEvaluationUsed && greenwashingRisk.combinedPenalty !== undefined) {
+      // AI-enhanced penalty (already calculated with 60% AI + 40% rule-based weighting)
+      greenwashingPenalty = greenwashingRisk.combinedPenalty;
+      console.log(`[Assess] Using AI-enhanced greenwashing penalty: ${greenwashingPenalty}`);
+    } else {
+      // Fallback: Calculate penalty from individual red flags
+      for (const flag of greenwashingRisk.redFlags) {
+        switch (flag.severity) {
+          case 'high':
+            greenwashingPenalty += 10;
+            break;
+          case 'medium':
+            greenwashingPenalty += 6;
+            break;
+          case 'low':
+            greenwashingPenalty += 3;
+            break;
+        }
       }
-    }
 
-    // Add base penalty for overall risk level (cumulative effect)
-    if (greenwashingRisk.overallRisk === 'high') {
-      greenwashingPenalty += 10; // Additional base penalty for high risk
-    } else if (greenwashingRisk.overallRisk === 'medium') {
-      greenwashingPenalty += 5; // Additional base penalty for medium risk
+      // Add base penalty for overall risk level
+      if (greenwashingRisk.overallRisk === 'high') {
+        greenwashingPenalty += 10;
+      } else if (greenwashingRisk.overallRisk === 'medium') {
+        greenwashingPenalty += 5;
+      }
     }
 
     // Cap penalty at 60 points max to avoid total zeroing
@@ -155,6 +248,15 @@ export async function POST(request: NextRequest) {
         redFlags: greenwashingRisk.redFlags,
         positiveIndicators: greenwashingRisk.positiveIndicators,
         recommendations: greenwashingRisk.recommendations,
+        // AI-enhanced fields
+        aiEvaluationUsed: greenwashingRisk.aiEvaluationUsed,
+        aiScore: greenwashingRisk.aiScore,
+        aiRiskLevel: greenwashingRisk.aiRiskLevel,
+        aiConfidence: greenwashingRisk.aiConfidence,
+        aiBreakdown: greenwashingRisk.aiBreakdown,
+        aiSummary: greenwashingRisk.aiSummary,
+        aiTopConcerns: greenwashingRisk.aiTopConcerns,
+        aiPositiveFindings: greenwashingRisk.aiPositiveFindings,
       },
       dfiMatches: dfiMatches.map(m => ({
         id: m.dfi.id,
@@ -184,6 +286,9 @@ export async function POST(request: NextRequest) {
       } : null,
       nextSteps: generateNextSteps(eligibilityStatus, greenwashingRisk.overallRisk, dfiMatches.length),
       assessmentDate: new Date().toISOString(),
+      // NEW: AI evaluation metadata
+      aiEvaluationUsed,
+      lmaEvaluationDetails, // Detailed AI evaluation if available
     };
 
     return NextResponse.json(result);
