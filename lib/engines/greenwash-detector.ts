@@ -88,10 +88,23 @@ const RED_FLAG_PATTERNS: {
     severity: 'high',
     pattern: (project) => {
       const text = (project.description + ' ' + project.transitionStrategy).toLowerCase();
-      return (text.includes('proprietary') || text.includes('secret') || text.includes('confidential')) &&
-        !project.thirdPartyVerification;
+      const fullText = (project.rawDocumentText || text).toLowerCase();
+
+      // Only flag if "proprietary/secret" is used with unverified CLAIMS
+      // Not just technology names like "proprietary EcoMax technology"
+      const hasSecretClaim = (text.includes('secret formula') || text.includes('secret method') ||
+        text.includes('confidential methodology') || text.includes('proprietary methodology') ||
+        text.includes('proprietary calculation') || text.includes('proprietary data'));
+
+      // Check if document has verification commitments (even if boolean flag is false)
+      const hasVerificationCommitment = fullText.includes('third-party verification') ||
+        fullText.includes('independent auditor') || fullText.includes('dnv') ||
+        fullText.includes('kpmg') || fullText.includes('annual verification') ||
+        fullText.includes('second party opinion');
+
+      return hasSecretClaim && !project.thirdPartyVerification && !hasVerificationCommitment;
     },
-    description: 'Claims based on proprietary/secret technology without independent verification',
+    description: 'Claims based on proprietary/secret methodology without independent verification',
     recommendation: 'Provide third-party verification for all technology and emissions claims'
   },
   {
