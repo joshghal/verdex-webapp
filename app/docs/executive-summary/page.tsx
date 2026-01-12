@@ -185,7 +185,7 @@ export default function ExecutiveSummaryPage() {
       <div className="my-8 p-6 rounded-2xl bg-gradient-to-br from-verdex-50 via-white to-emerald-50 border border-verdex-200">
         <h3 className="font-display font-semibold text-verdex-800 mb-3">Knowledge Base: Built to Scale</h3>
         <p className="text-gray-700 leading-relaxed mb-4">
-          We&apos;ve catalogued <strong>2,009 LMA documents</strong> — the foundation is laid. Today, we index <strong>21 high-priority documents</strong> covering the October 2025 Transition Loan Guide, core facility agreements, and Africa-specific frameworks.
+          We&apos;ve catalogued <strong>2,009 LMA documents</strong> — the foundation is laid. Today, we index <strong>20 high-priority documents</strong> covering the October 2025 Transition Loan Guide, core facility agreements, and Africa-specific frameworks.
         </p>
         <p className="text-gray-700 leading-relaxed mb-4">
           This isn&apos;t a limitation — it&apos;s a deliberate MVP scope. The full catalogue is mapped, categorized, and ready for ingestion.

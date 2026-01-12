@@ -32,7 +32,7 @@ export default function RoadmapPage() {
       {/* Hero Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 my-6">
         {[
-          { icon: <FileText className="w-5 h-5" />, value: '21', label: 'Docs Indexed', sub: 'MVP' },
+          { icon: <FileText className="w-5 h-5" />, value: '20', label: 'Docs Indexed', sub: 'MVP' },
           { icon: <Database className="w-5 h-5" />, value: '2,009', label: 'Docs Catalogued', sub: 'Ready' },
           { icon: <Globe className="w-5 h-5" />, value: '83', label: 'Africa-Specific', sub: 'Mapped' },
           { icon: <TrendingUp className="w-5 h-5" />, value: '12', label: 'Years Coverage', sub: '2013-2025' },
@@ -52,7 +52,7 @@ export default function RoadmapPage() {
       <div className="my-8 p-4 rounded-xl bg-white border border-gray-200">
         <div className="flex justify-between text-sm mb-2">
           <span className="text-gray-600">Knowledge Base Progress</span>
-          <span className="font-semibold text-verdex-700">21 / 2,009 indexed (1%)</span>
+          <span className="font-semibold text-verdex-700">20 / 2,009 indexed (1%)</span>
         </div>
         <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
           <div className="h-full bg-verdex-500 rounded-full" style={{ width: '1%' }}></div>
@@ -68,17 +68,17 @@ export default function RoadmapPage() {
       </h2>
 
       <p className="text-gray-700 leading-relaxed mb-4">
-        Today, Verdex indexes <strong>21 high-priority documents</strong> — a deliberate MVP scope covering the essentials for transition loan validation.
+        Today, Verdex indexes <strong>20 high-priority documents</strong> — a deliberate MVP scope covering the essentials for transition loan validation.
       </p>
 
       <DataTable
         headers={['Category', 'Indexed', 'Coverage']}
         rows={[
           ['Transition Loan Guide (Oct 2025)', '1', '5 Core Components scoring'],
-          ['Core Facility Agreements', '13', 'Green Loan, SLL Principles, templates'],
+          ['Core Facility Agreements', '14', 'Green Loan, SLL Principles, templates'],
           ['Africa-Specific', '3', 'OHADA, East Africa, South Africa'],
           ['External Frameworks', '2', 'SBTi Net-Zero V2, Paris Agreement'],
-          [<span key="total" className="font-bold text-verdex-700">Total</span>, <span key="num" className="font-bold">21</span>, <span key="cov" className="font-bold">MVP Complete</span>],
+          [<span key="total" className="font-bold text-verdex-700">Total</span>, <span key="num" className="font-bold">20</span>, <span key="cov" className="font-bold">MVP Complete</span>],
         ]}
       />
 
@@ -297,7 +297,7 @@ export default function RoadmapPage() {
             {
               phase: 'Today',
               title: 'Validation Engine',
-              items: ['21 docs indexed', 'LMA 5 Components scoring', '7 DFI matching', 'Greenwashing detection'],
+              items: ['20 docs indexed', 'LMA 5 Components scoring', '7 DFI matching', 'Greenwashing detection'],
             },
             {
               phase: 'Phase 2',
