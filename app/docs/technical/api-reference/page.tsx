@@ -16,6 +16,8 @@ export default function APIReferencePage() {
       tableOfContents={[
         { id: 'overview', title: 'Overview', level: 2 },
         { id: 'assess-endpoint', title: 'Assess Endpoint', level: 2 },
+        { id: 'location-risk-endpoint', title: 'Location Risk Endpoint', level: 2 },
+        { id: 'location-insight-endpoint', title: 'Location Insight Endpoint', level: 2 },
         { id: 'search-endpoint', title: 'Search Endpoint', level: 2 },
         { id: 'upload-pdf-endpoint', title: 'Upload PDF Endpoint', level: 2 },
         { id: 'chat-endpoint', title: 'Chat Endpoint', level: 2 },
@@ -235,8 +237,205 @@ export default function APIReferencePage() {
 
       <InfoBox type="info" title="Scoring Logic">
         Projects score 0-100 across five LMA components (20 points each). Greenwashing red flags reduce
-        the score: high severity (-10 pts), medium (-6 pts), low (-3 pts). Fossil fuel projects and
-        non-African locations are automatically ineligible.
+        the LMA score: high severity (-25 pts), medium (-15 pts), low (-5 pts). DNSH is an independent
+        score (0-100) displayed separately. Fossil fuel projects and non-African locations are
+        automatically ineligible. Eligibility thresholds: ≥60 eligible, 30-59 partial, &lt;30 ineligible.
+      </InfoBox>
+
+      {/* ============================== LOCATION RISK ENDPOINT ============================== */}
+      <h2 id="location-risk-endpoint" className="text-2xl font-display font-semibold text-gray-900 mt-12 mb-4">
+        POST /api/location-risk
+      </h2>
+
+      <p className="text-gray-700 leading-relaxed mb-4">
+        Get climate intelligence and location-specific risk assessment for a project site.
+        Returns historical climate data, CMIP6 projections, risk metrics, and site intelligence.
+      </p>
+
+      <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-3">cURL Example</h3>
+
+      <CollapsibleCodeBlock
+        language="bash"
+        title="cURL"
+        code={`curl -X POST https://www.verdx.site/api/location-risk \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "country": "kenya",
+    "sector": "energy",
+    "city": "Nairobi"
+  }'`}
+      />
+
+      <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-3">Request Body</h3>
+
+      <CollapsibleCodeBlock
+        language="typescript"
+        title="Request"
+        code={`{
+  "country": "kenya",     // Required: African country code
+  "sector": "energy",     // Required: Project sector
+  "city": "Nairobi"       // Optional: Defaults to capital city
+}`}
+      />
+
+      <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-3">Response</h3>
+
+      <CollapsibleCodeBlock
+        language="typescript"
+        title="Response"
+        code={`{
+  "coordinates": {
+    "latitude": -1.2921,
+    "longitude": 36.8219,
+    "locationName": "Nairobi, Kenya"
+  },
+  "overallRiskScore": 45,  // 0-100, lower = less risk
+
+  "historicalData": {
+    "averageTemperature": 19.2,      // °C, 10-year average
+    "annualPrecipitation": 958,       // mm/year
+    "extremeHeatDays": 12,            // Days >35°C per year
+    "drySeasonMonths": [1, 2, 7, 8, 9],
+    "droughtRisk": "medium",
+    "floodRisk": "medium"
+  },
+
+  "projections": [
+    {
+      "scenario": "SSP2-4.5",    // Middle of the road
+      "year": 2030,
+      "temperatureChange": 0.9,  // °C above baseline
+      "precipitationChange": -3  // % change
+    },
+    {
+      "scenario": "SSP2-4.5",
+      "year": 2050,
+      "temperatureChange": 1.8,
+      "precipitationChange": -5
+    },
+    {
+      "scenario": "SSP5-8.5",    // High emissions
+      "year": 2050,
+      "temperatureChange": 2.4,
+      "precipitationChange": -8
+    }
+  ],
+
+  "riskMetrics": {
+    "heatStress": "moderate",
+    "waterScarcity": "moderate",
+    "droughtExposure": "medium",
+    "floodExposure": "medium"
+  },
+
+  "siteIntelligence": {
+    "optimalOperatingMonths": [3, 4, 5, 10, 11, 12],
+    "waterAvailability": "moderate",
+    "solarPotential": 5.4,              // kWh/m²/day (energy sector)
+    "agriculturalSuitability": null      // Only for agriculture sector
+  },
+
+  "keyInsights": [
+    "Moderate drought risk during extended dry season",
+    "Solar potential of 5.4 kWh/m²/day exceeds global average"
+  ],
+
+  "resilienceOpportunities": [
+    "Strategic location near urban demand center",
+    "Year-round solar viability with consistent irradiance"
+  ],
+
+  "recommendations": [
+    "Install rainwater harvesting for panel cleaning",
+    "Consider battery storage for grid stability"
+  ],
+
+  "dataSource": "open-meteo",
+  "assessmentDate": "2024-01-15T10:30:00.000Z"
+}`}
+      />
+
+      <InfoBox type="info" title="Climate Data Source">
+        Location risk uses Open-Meteo APIs (free, no API key required) for historical weather archive
+        (10-year data) and CMIP6 climate projections (SSP2-4.5, SSP5-8.5 scenarios for 2030/2050).
+      </InfoBox>
+
+      {/* ============================== LOCATION INSIGHT ENDPOINT ============================== */}
+      <h2 id="location-insight-endpoint" className="text-2xl font-display font-semibold text-gray-900 mt-12 mb-4">
+        POST /api/location-insight
+      </h2>
+
+      <p className="text-gray-700 leading-relaxed mb-4">
+        Generate AI-powered climate insights tailored to a specific project. Provides contextualized
+        recommendations, key risks, and opportunities based on climate data and project details.
+      </p>
+
+      <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-3">cURL Example</h3>
+
+      <CollapsibleCodeBlock
+        language="bash"
+        title="cURL"
+        code={`curl -X POST https://www.verdx.site/api/location-insight \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "sector": "energy",
+    "country": "kenya",
+    "locationName": "Nairobi",
+    "historicalData": {
+      "averageTemperature": 19.2,
+      "annualPrecipitation": 958,
+      "extremeHeatDays": 12,
+      "droughtRisk": "medium",
+      "floodRisk": "medium"
+    },
+    "siteIntelligence": {
+      "waterAvailability": "moderate",
+      "solarPotential": 5.4
+    },
+    "projections": [...],
+    "projectName": "Nairobi Solar Farm",
+    "projectDescription": "50MW utility-scale solar PV"
+  }'`}
+      />
+
+      <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-3">Response</h3>
+
+      <CollapsibleCodeBlock
+        language="typescript"
+        title="Response"
+        code={`{
+  "success": true,
+  "insights": {
+    "projectContext": "This solar project benefits from Kenya's equatorial location with consistent 5.4 kWh/m²/day irradiance.",
+
+    "recommendations": [
+      {
+        "text": "Install automated panel cleaning for dust management",
+        "priority": "high"
+      },
+      {
+        "text": "Consider battery storage for grid stability",
+        "priority": "medium"
+      }
+    ],
+
+    "keyRisk": {
+      "headline": "Moderate flood risk in April-May",
+      "mitigation": "Elevate inverter stations above flood level"
+    },
+
+    "opportunity": {
+      "headline": "Excellent solar irradiance year-round",
+      "detail": "5.4 kWh/m²/day exceeds global average by 25%"
+    }
+  },
+  "provider": "asi1"
+}`}
+      />
+
+      <InfoBox type="info" title="Lazy Loading">
+        AI insights are generated on-demand when users open the Climate Profile modal, not during
+        initial assessment. This reduces API costs and latency for the main assessment flow.
       </InfoBox>
 
       {/* ============================== SEARCH ENDPOINT ============================== */}

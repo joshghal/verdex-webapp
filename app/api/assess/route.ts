@@ -4,7 +4,8 @@ import { detectGreenwashing, detectGreenwashingEnhanced, type EnhancedGreenwashi
 import { generateKPIRecommendationsAI } from '@/lib/engines/kpi-generator';
 import { getCountryProfile } from '@/lib/data/countries';
 import { evaluateAllComponents } from '@/lib/engines/lma-evaluator';
-import type { ProjectInput, AfricanCountry, Sector } from '@/lib/types';
+import { assessLocationRisk } from '@/lib/engines/location-risk-engine';
+import type { ProjectInput, AfricanCountry, Sector, LocationRiskAssessment } from '@/lib/types';
 import type { ComponentSections, ExtractedFields, LMAComponentEvaluation } from '../lma/types';
 
 export async function POST(request: NextRequest) {
@@ -60,18 +61,34 @@ export async function POST(request: NextRequest) {
     // Use AI-enhanced greenwashing detection if document text is available
     const documentText = body.rawDocumentText || body.description + ' ' + body.transitionStrategy;
     let greenwashingRisk: EnhancedGreenwashingAssessment;
+    let locationRisk: LocationRiskAssessment | null = null;
 
-    try {
-      greenwashingRisk = await detectGreenwashingEnhanced(project, documentText);
+    // Run greenwashing and location risk assessments in parallel
+    const [greenwashResult, locationResult] = await Promise.allSettled([
+      detectGreenwashingEnhanced(project, documentText),
+      assessLocationRisk(project.country, project.sector)
+    ]);
+
+    // Process greenwashing result
+    if (greenwashResult.status === 'fulfilled') {
+      greenwashingRisk = greenwashResult.value;
       console.log(`[Assess] Greenwashing: AI=${greenwashingRisk.aiEvaluationUsed}, Score=${greenwashingRisk.aiScore}, Penalty=${greenwashingRisk.combinedPenalty}`);
-    } catch (error) {
-      console.error('[Assess] AI greenwashing detection failed, using rule-based:', error);
+    } else {
+      console.error('[Assess] AI greenwashing detection failed, using rule-based:', greenwashResult.reason);
       const ruleBasedResult = detectGreenwashing(project);
       greenwashingRisk = {
         ...ruleBasedResult,
         aiEvaluationUsed: false,
         combinedPenalty: ruleBasedResult.riskScore >= 70 ? 20 : ruleBasedResult.riskScore >= 40 ? 10 : 0
       };
+    }
+
+    // Process location risk result (optional - don't fail assessment if unavailable)
+    if (locationResult.status === 'fulfilled') {
+      locationRisk = locationResult.value;
+      console.log(`[Assess] Location Risk: Score=${locationRisk.overallRiskScore}, Location=${locationRisk.coordinates.locationName}`);
+    } else {
+      console.warn('[Assess] Location risk assessment unavailable:', locationResult.reason);
     }
 
     const blendedStructure = recommendBlendedStructure(project, dfiMatches);
@@ -155,9 +172,9 @@ export async function POST(request: NextRequest) {
     let adjustedScore = lmaScore.overall;
     let greenwashingPenalty = 0;
 
-    // Use AI-enhanced penalty if available, otherwise calculate from red flags
+    // Use AI-enhanced penalty if available (greenwashing only, DNSH is separate)
     if (greenwashingRisk.aiEvaluationUsed && greenwashingRisk.combinedPenalty !== undefined) {
-      // AI-enhanced penalty (already calculated with 60% AI + 40% rule-based weighting)
+      // AI-enhanced penalty (60% AI + 40% rule-based) - DNSH is displayed separately
       greenwashingPenalty = greenwashingRisk.combinedPenalty;
       console.log(`[Assess] Using AI-enhanced greenwashing penalty: ${greenwashingPenalty}`);
     } else {
@@ -257,7 +274,24 @@ export async function POST(request: NextRequest) {
         aiSummary: greenwashingRisk.aiSummary,
         aiTopConcerns: greenwashingRisk.aiTopConcerns,
         aiPositiveFindings: greenwashingRisk.aiPositiveFindings,
+        // DNSH Assessment (EU Taxonomy Article 17)
+        dnshAssessment: greenwashingRisk.dnshAssessment || null,
+        dnshPenalty: greenwashingRisk.dnshPenalty || 0,
       },
+      // Climate Resilience Profile (Location Risk)
+      locationRisk: locationRisk ? {
+        coordinates: locationRisk.coordinates,
+        overallRiskScore: locationRisk.overallRiskScore,
+        historicalData: locationRisk.historicalData,
+        projections: locationRisk.projections,
+        riskMetrics: locationRisk.riskMetrics,
+        keyInsights: locationRisk.keyInsights,
+        resilienceOpportunities: locationRisk.resilienceOpportunities,
+        siteIntelligence: locationRisk.siteIntelligence,
+        recommendations: locationRisk.recommendations,
+        dataSource: locationRisk.dataSource,
+        assessmentDate: locationRisk.assessmentDate,
+      } : null,
       dfiMatches: dfiMatches.map(m => ({
         id: m.dfi.id,
         name: m.dfi.name,

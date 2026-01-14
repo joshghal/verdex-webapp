@@ -51,6 +51,8 @@ const navigation: NavItem[] = [
       { title: 'LMA Validator', href: '/docs/features/lma-validator' },
       { title: 'DFI Matching', href: '/docs/features/dfi-matching' },
       { title: 'Greenwash Detection', href: '/docs/features/greenwash-detection' },
+      { title: 'DNSH Assessment', href: '/docs/features/dnsh-assessment' },
+      { title: 'Climate Intelligence', href: '/docs/features/climate-intelligence' },
       { title: 'KPI Generator', href: '/docs/features/kpi-generator' },
       { title: 'Clause Library', href: '/docs/features/clause-library' },
     ]
@@ -62,6 +64,7 @@ const navigation: NavItem[] = [
       { title: 'Architecture', href: '/docs/technical/architecture' },
       { title: 'Knowledge Base', href: '/docs/technical/knowledge-base' },
       { title: 'API Reference', href: '/docs/technical/api-reference' },
+      { title: 'Scoring Methodology', href: '/docs/technical/scoring-methodology' },
     ]
   },
   {

@@ -6,7 +6,6 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import {
   ArrowUpRight,
-  Zap,
   Shield,
   Building2,
   FileCheck,
@@ -17,21 +16,12 @@ import {
   Database,
   Users,
   TrendingUp,
-  Target,
-  Code,
   DollarSign,
   Leaf,
-  Sun,
   ChevronRight,
   ChevronUp,
   ChevronDown,
-  Play,
-  Layers,
-  Link2,
-  Lightbulb,
   Globe,
-  BarChart3,
-  Handshake
 } from 'lucide-react';
 
 // Register GSAP plugins
@@ -498,35 +488,42 @@ export default function PitchDeckPage() {
             </div>
 
             {/* Africa-centric framing */}
-            <div className="bento-card mb-10">
+            <div className="bento-card mb-8">
               <blockquote className="text-2xl md:text-3xl text-white font-light leading-relaxed mb-4">
                 African renewable energy projects face a <span className="text-verdex-400">$233 billion</span> annual financing gap — not from lack of capital, but lack of <span className="text-verdex-400">bankability.</span>
               </blockquote>
               <span className="text-white/50 text-sm">LMA Edge Hackathon — Greener Lending Challenge</span>
             </div>
 
-            {/* The Gap */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
-              <div className="bento-card bg-verdex-500/10 border border-verdex-500/20 rounded-2xl p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <Check className="w-5 h-5 text-verdex-400" strokeWidth={2} />
-                  <span className="text-verdex-400 font-semibold">LMA Standards Exist</span>
+            {/* The Real Barriers */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8">
+              <div className="bento-card bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <X className="w-4 h-4 text-rose-400" strokeWidth={2} />
+                  <span className="text-rose-400 font-semibold text-sm">Complexity Barrier</span>
                 </div>
-                <p className="text-white/80">2,009 documents. 12 years of guidance. World-class transition finance frameworks.</p>
+                <p className="text-white/70 text-sm">LMA&apos;s Guide defines 5 Core Components + DNSH requirements. Technical language. No self-assessment tools for borrowers.</p>
               </div>
-              <div className="bento-card bg-rose-500/10 border border-rose-500/20 rounded-2xl p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <X className="w-5 h-5 text-rose-400" strokeWidth={2} />
-                  <span className="text-rose-400 font-semibold">African Borrowers Excluded</span>
+              <div className="bento-card bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <X className="w-4 h-4 text-rose-400" strokeWidth={2} />
+                  <span className="text-rose-400 font-semibold text-sm">Expertise Barrier</span>
                 </div>
-                <p className="text-white/80">Standards written for London lenders. A developer in Nairobi can&apos;t access them.</p>
+                <p className="text-white/70 text-sm">Transition strategy, DNSH screening, climate risk — require specialist knowledge most developers lack.</p>
+              </div>
+              <div className="bento-card bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <X className="w-4 h-4 text-rose-400" strokeWidth={2} />
+                  <span className="text-rose-400 font-semibold text-sm">Cost Barrier</span>
+                </div>
+                <p className="text-white/70 text-sm">Big 4 consultants charge $10K+ for compliance assessments. African developers priced out.</p>
               </div>
             </div>
 
             {/* Our Answer */}
-            <div className="bento-card bg-verdex-500/10 backdrop-blur-sm rounded-2xl border border-verdex-500/30 p-6">
-              <p className="text-xl md:text-2xl text-white leading-relaxed">
-                Give African borrowers the tools to understand and demonstrate LMA compliance — <span className="text-verdex-400 font-semibold">before they approach lenders.</span>
+            <div className="bento-card bg-verdex-500/10 backdrop-blur-sm rounded-2xl border border-verdex-500/30 p-5">
+              <p className="text-lg md:text-xl text-white leading-relaxed">
+                <span className="text-verdex-400 font-semibold">The same tools London lenders use</span> — LMA validation, EU Taxonomy screening, climate risk assessment — <span className="text-verdex-400 font-semibold">delivered to African borrowers.</span>
               </p>
             </div>
           </div>
@@ -543,57 +540,58 @@ export default function PitchDeckPage() {
         <div className="section-content relative z-10 w-full px-6 py-8">
           <div className="max-w-4xl mx-auto">
             {/* Header */}
-            <div className="animate-item flex items-center gap-3 mb-4">
+            <div className="animate-item flex items-center gap-3 mb-6">
               <div className="w-12 h-[2px] bg-gradient-to-r from-verdex-500 to-verdex-400" />
               <span className="text-verdex-600 font-semibold tracking-wider uppercase text-sm">The Insight</span>
             </div>
-            <h2 className="animate-item text-3xl md:text-4xl font-display font-medium text-gray-900 mb-8">
-              LMA Standards Are Lender-Focused. <span className="text-verdex-600">Borrowers Are Locked Out.</span>
+
+            {/* The Problem - simple headline */}
+            <h2 className="animate-item text-3xl md:text-5xl font-display font-medium text-gray-900 mb-10 leading-tight">
+              The LMA wrote the rules.<br/>
+              <span className="text-verdex-600">Borrowers have no way to check them.</span>
             </h2>
 
-            {/* Human Story - condensed */}
-            <div className="bento-card glass-card rounded-2xl p-5 mb-8 border-l-4 border-l-verdex-500">
-              <p className="text-lg text-gray-700 leading-relaxed">
-                A solar developer in <span className="font-semibold text-verdex-700">Nairobi</span> or wind farm operator in <span className="font-semibold text-verdex-700">Lagos</span> will never navigate 2,009 technical PDFs written for global banks.
-              </p>
-            </div>
-
-            {/* Simplified two-column - fewer items */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-              <div className="bento-card glass-card rounded-2xl p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <Check className="w-5 h-5 text-verdex-600" strokeWidth={2} />
-                  <span className="font-semibold text-gray-900">Borrowers Have</span>
-                </div>
-                <p className="text-gray-600">Viable projects, capital needs, and good intentions</p>
+            {/* The gap - clean visual comparison */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+              <div className="bento-card glass-card rounded-2xl p-6 border-l-4 border-l-verdex-500">
+                <div className="text-sm text-verdex-600 font-semibold uppercase tracking-wider mb-4">LMA Requirements</div>
+                <ul className="space-y-3 text-gray-700">
+                  <li className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-verdex-500" strokeWidth={2} />
+                    <span>5 Core Components compliance</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-verdex-500" strokeWidth={2} />
+                    <span>DNSH environmental safeguards</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-verdex-500" strokeWidth={2} />
+                    <span>Climate resilience evidence</span>
+                  </li>
+                </ul>
               </div>
-              <div className="bento-card glass-card rounded-2xl p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <X className="w-5 h-5 text-rose-500" strokeWidth={2} />
-                  <span className="font-semibold text-gray-900">Borrowers Lack</span>
-                </div>
-                <p className="text-gray-600">LMA expertise and bankable documentation</p>
-              </div>
-            </div>
-
-            {/* Result - single impactful stat */}
-            <div className="bento-card glass-card rounded-2xl p-6 text-center border-t-4 border-t-verdex-500 mb-6">
-              <div className="flex items-center justify-center gap-8">
-                <div>
-                  <div className="text-4xl font-display font-bold text-verdex-600">$233B</div>
-                  <div className="text-sm text-gray-500">Annual climate finance gap</div>
-                </div>
-                <div className="w-px h-12 bg-gray-200" />
-                <div>
-                  <div className="text-4xl font-display font-bold text-verdex-600">5-8x</div>
-                  <div className="text-sm text-gray-500">Higher borrowing costs</div>
-                </div>
+              <div className="bento-card glass-card rounded-2xl p-6 border-l-4 border-l-rose-400">
+                <div className="text-sm text-rose-600 font-semibold uppercase tracking-wider mb-4">Borrower Reality</div>
+                <ul className="space-y-3 text-gray-700">
+                  <li className="flex items-center gap-3">
+                    <X className="w-5 h-5 text-rose-400" strokeWidth={2} />
+                    <span>No self-assessment tools</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <X className="w-5 h-5 text-rose-400" strokeWidth={2} />
+                    <span>$10K+ consultant fees</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <X className="w-5 h-5 text-rose-400" strokeWidth={2} />
+                    <span>No Africa-specific data</span>
+                  </li>
+                </ul>
               </div>
             </div>
 
             {/* Punchline */}
-            <p className="text-xl text-center font-semibold text-gray-900">
-              What&apos;s missing: <span className="text-verdex-600">a way for borrowers to understand what lenders need.</span>
+            <p className="text-xl md:text-2xl text-center font-medium text-gray-900">
+              We&apos;re giving borrowers the tools. <span className="text-verdex-600">Same standards. Free access.</span>
             </p>
           </div>
         </div>
@@ -614,73 +612,75 @@ export default function PitchDeckPage() {
 
         <div className="section-content relative z-10 w-full px-6 py-8">
           <div className="max-w-4xl mx-auto">
-            {/* Header - simplified */}
-            <div className="text-center mb-10">
-              <h2 className="intro-header text-4xl md:text-5xl font-display font-bold text-white mb-3">Verdex</h2>
-              <p className="intro-header text-xl text-verdex-300">
-                The Borrower&apos;s Toolkit for LMA Transition Finance
+            {/* Header */}
+            <div className="text-center mb-8">
+              <h2 className="intro-header text-5xl md:text-6xl font-display font-bold text-white mb-3">Verdex</h2>
+              <p className="intro-header text-xl md:text-2xl text-verdex-300 mb-2">
+                The borrower&apos;s toolkit for transition finance.
+              </p>
+              <p className="intro-header text-sm text-white/50 max-w-xl mx-auto">
+                Same standards European lenders use — LMA validation, DNSH screening, climate intelligence — now accessible to African developers.
               </p>
             </div>
 
-            {/* Bridge Visualization - simplified */}
-            <div className="flex items-center justify-center gap-4 md:gap-8 mb-10">
-              {/* Projects Side */}
+            {/* Bridge Visualization - Projects → Verdex → Capital */}
+            <div className="flex items-center justify-center gap-6 md:gap-10 mb-10">
               <div className="intro-side-left text-center">
-                <Leaf className="w-8 h-8 text-verdex-400 mx-auto mb-2" strokeWidth={1.5} />
-                <div className="text-white font-semibold">African Projects</div>
+                <Leaf className="w-10 h-10 text-verdex-400 mx-auto mb-2" strokeWidth={1.5} />
+                <div className="text-white font-semibold text-sm">African Projects</div>
+                <div className="text-white/40 text-xs mt-1">Solar, wind, agri, transport</div>
               </div>
 
-              {/* Arrow */}
-              <ChevronRight className="w-6 h-6 text-verdex-400/60" />
+              <div className="intro-arrow flex items-center gap-2">
+                <div className="w-10 h-[2px] bg-gradient-to-r from-verdex-400/50 to-verdex-400" />
+                <ChevronRight className="w-4 h-4 text-verdex-400" />
+              </div>
 
-              {/* Verdex Center */}
-              <div className="intro-verdex-hero rounded-2xl bg-gradient-to-br from-verdex-800 to-verdex-900 border border-verdex-500/30 px-8 py-6">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <div className="w-2 h-2 rounded-full bg-verdex-400" />
-                  <span className="text-verdex-300 text-xs font-medium uppercase tracking-wider">Platform</span>
-                </div>
-                <div className="text-2xl font-display font-bold text-white mb-3">VERDEX</div>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  {[
-                    { action: 'Validate', desc: 'LMA' },
-                    { action: 'Detect', desc: 'Greenwash' },
-                    { action: 'Match', desc: 'DFIs' },
-                    { action: 'Generate', desc: 'KPIs' },
-                  ].map((item, i) => (
-                    <div key={item.action} className="flex items-center gap-2 text-white/80">
-                      <span className="w-5 h-5 rounded bg-verdex-500/30 text-verdex-300 text-xs flex items-center justify-center">{i + 1}</span>
-                      <span className="text-white">{item.action}</span>
-                      <span className="text-white/50 text-xs">{item.desc}</span>
-                    </div>
-                  ))}
+              <div className="intro-verdex-hero">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-verdex-500 to-verdex-700 flex items-center justify-center shadow-lg shadow-verdex-500/30">
+                  <svg width="32" height="32" viewBox="0 0 56 56" fill="none">
+                    <path d="M10 10 Q14 10 18 18 L28 44" stroke="white" strokeWidth="5" strokeLinecap="round" fill="none"/>
+                    <path d="M46 10 Q42 10 38 18 L28 44" stroke="white" strokeWidth="5" strokeLinecap="round" fill="none" opacity="0.5"/>
+                  </svg>
                 </div>
               </div>
 
-              {/* Arrow */}
-              <ChevronRight className="w-6 h-6 text-gold-400/60" />
+              <div className="intro-arrow flex items-center gap-2">
+                <ChevronRight className="w-4 h-4 text-gold-400" />
+                <div className="w-10 h-[2px] bg-gradient-to-r from-gold-400 to-gold-400/50" />
+              </div>
 
-              {/* Capital Side */}
               <div className="intro-side-right text-center">
-                <DollarSign className="w-8 h-8 text-gold-400 mx-auto mb-2" strokeWidth={1.5} />
-                <div className="text-white font-semibold">Global Capital</div>
-                <div className="text-gold-300 text-sm">$700B ready</div>
+                <DollarSign className="w-10 h-10 text-gold-400 mx-auto mb-2" strokeWidth={1.5} />
+                <div className="text-white font-semibold text-sm">DFI Capital</div>
+                <div className="text-white/40 text-xs mt-1">FMO, Proparco, IFC, DEG...</div>
               </div>
             </div>
 
-            {/* Features - with short descriptions */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* What Verdex Does - Enhanced 3x2 grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
               {[
-                { icon: FileCheck, title: 'LMA Validator', desc: '5 Core Components scoring' },
-                { icon: Database, title: 'Clause Search', desc: '500+ templates with AI' },
-                { icon: Shield, title: 'Greenwash Detection', desc: 'Flag issues early' },
-                { icon: Users, title: 'DFI Matching', desc: '7 development financiers' },
+                { icon: FileCheck, title: 'LMA Validation', desc: 'Automated 5 Core Components assessment against Oct 2025 Guide' },
+                { icon: Shield, title: 'DNSH Screening', desc: 'EU Taxonomy harm detection for 6 environmental objectives' },
+                { icon: Globe, title: 'Climate Intelligence', desc: 'Location-specific risk data using Open-Meteo climate API' },
+                { icon: TrendingUp, title: 'Greenwash Detection', desc: 'AI-powered analysis of vague claims and missing evidence' },
+                { icon: Database, title: 'Clause Library', desc: '500+ transition loan templates from actual DFI agreements' },
+                { icon: Users, title: 'DFI Matching', desc: 'Algorithm matches projects to 7+ development financiers' },
               ].map((feature, i) => (
-                <div key={i} className="intro-bottom-card rounded-xl bg-white/5 border border-white/10 p-4 text-center">
-                  <feature.icon className="w-5 h-5 text-verdex-400 mx-auto mb-2" strokeWidth={1.5} />
-                  <div className="text-sm text-white font-medium">{feature.title}</div>
-                  <div className="text-xs text-white/50 mt-1">{feature.desc}</div>
+                <div key={i} className="intro-bottom-card bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+                  <feature.icon className="w-5 h-5 text-verdex-400 mb-2" strokeWidth={1.5} />
+                  <div className="text-sm text-white font-medium mb-1">{feature.title}</div>
+                  <div className="text-xs text-white/50 leading-relaxed">{feature.desc}</div>
                 </div>
               ))}
+            </div>
+
+            {/* Empowerment punchline */}
+            <div className="text-center">
+              <p className="text-verdex-300 text-sm">
+                <span className="text-white font-semibold">$10K consultancy → </span>60-second self-assessment.{' '}
+                <span className="text-verdex-400">Leveling the playing field.</span>
+              </p>
             </div>
           </div>
         </div>
@@ -705,7 +705,7 @@ export default function PitchDeckPage() {
               Built on the <span className="text-verdex-600">October 2025 LMA Transition Loan Guide</span>
             </h2>
             <p className="animate-item text-lg text-gray-600 mb-6">
-              Verdex validates against all 5 Core Components. We didn&apos;t fabricate criteria — we encoded the actual LMA standard.
+              Verdex automates assessment of the LMA&apos;s 5 Core Components + DNSH safeguards. We didn&apos;t invent criteria — we encoded the actual standard.
             </p>
 
             {/* 5 Components - Simplified */}
@@ -728,12 +728,17 @@ export default function PitchDeckPage() {
             </div>
 
             {/* Source Link */}
-            <div className="mt-6 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <FileText className="w-5 h-5 text-verdex-600" strokeWidth={1.5} />
-                <span className="text-sm text-gray-600">
-                  Source: <a href="https://www.lma.eu.com/application/files/9917/6035/1809/Guide_to_Transition_Loans_-_16_October_2025.pdf" target="_blank" rel="noopener noreferrer" className="text-verdex-600 hover:underline font-medium">LMA Transition Loan Guide — October 2025</a>
-                </span>
+            <div className="mt-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-verdex-600" strokeWidth={1.5} />
+                  <span className="text-sm text-gray-600">
+                    <a href="https://www.lma.eu.com/application/files/8017/6121/0645/Guide_to_Transition_Loans_-_16_October_2025.pdf" target="_blank" rel="noopener noreferrer" className="text-verdex-600 hover:underline font-medium">LMA Guide to Transition Loans — October 2025</a>
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-400 ml-6">Defines 5 Core Components + DNSH safeguards for transition finance</span>
+                </div>
               </div>
               <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-verdex-100 border border-verdex-200">
                 <Clock className="w-4 h-4 text-verdex-600" strokeWidth={1.5} />

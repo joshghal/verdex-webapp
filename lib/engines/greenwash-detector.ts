@@ -1,10 +1,12 @@
 // Greenwashing Detector Engine
+// Enhanced with EU Taxonomy DNSH (Do No Significant Harm) integration
 
 import type {
   ProjectInput,
   RedFlag,
   GreenwashingAssessment,
-  RiskLevel
+  RiskLevel,
+  DNSHAssessment
 } from '../types';
 
 import {
@@ -14,7 +16,12 @@ import {
   type ProjectDataForGreenwash
 } from './ai-greenwash-evaluator';
 
-// Enhanced assessment type with AI fields
+import {
+  evaluateDNSH,
+  dnshToGreenwashPenalty
+} from './dnsh-evaluator';
+
+// Enhanced assessment type with AI fields and DNSH integration
 export interface EnhancedGreenwashingAssessment extends GreenwashingAssessment {
   aiEvaluationUsed: boolean;
   aiScore?: number;
@@ -25,6 +32,9 @@ export interface EnhancedGreenwashingAssessment extends GreenwashingAssessment {
   aiTopConcerns?: string[];
   aiPositiveFindings?: string[];
   combinedPenalty: number;
+  // DNSH (Do No Significant Harm) integration - EU Taxonomy Article 17
+  dnshAssessment?: DNSHAssessment;
+  dnshPenalty?: number;
 }
 
 const RED_FLAG_PATTERNS: {
@@ -641,14 +651,17 @@ function generateRecommendations(redFlags: RedFlag[], overallRisk: RiskLevel): s
 }
 
 /**
- * Enhanced greenwashing detection with AI
- * Combines rule-based detection with AI-powered analysis
+ * Enhanced greenwashing detection with AI and DNSH integration
+ * Combines rule-based detection, AI analysis, and EU Taxonomy DNSH screening
  *
  * Environment variable: GREENWASH_DETECTION_MODE
  * Options:
  *   - 'rule'      : Rule-based pattern matching only (default, fast, no API calls)
  *   - 'ai'        : AI-powered evaluation only (requires ASI1_API_KEY_GREENWASH)
  *   - 'hybrid'    : Both AI + rule-based combined (60% AI / 40% rules)
+ *
+ * DNSH evaluation runs in parallel when document text is available.
+ * Combined penalty: 50% AI/rule-based + 30% rules + 20% DNSH
  */
 export async function detectGreenwashingEnhanced(
   project: ProjectInput,
@@ -660,8 +673,9 @@ export async function detectGreenwashingEnhanced(
   // Check detection mode from environment (default: rule-based for speed)
   const mode = (process.env.GREENWASH_DETECTION_MODE || 'rule').toLowerCase();
 
-  if (mode === 'rule') {
-    console.log('[Greenwash Detector] Mode: rule-based only (GREENWASH_DETECTION_MODE=rule)');
+  // If no document text, return rule-based only (no DNSH either)
+  if (!documentText || documentText.length < 100) {
+    console.log('[Greenwash Detector] No document text provided, using rule-based only');
     return {
       ...ruleBasedResult,
       aiEvaluationUsed: false,
@@ -669,13 +683,35 @@ export async function detectGreenwashingEnhanced(
     };
   }
 
-  // If no document text, return rule-based only
-  if (!documentText || documentText.length < 100) {
-    console.log('[Greenwash Detector] No document text provided, using rule-based only');
+  // Run DNSH evaluation in parallel with AI evaluation (if enabled)
+  // DNSH always runs when document text is available
+  let dnshResult: DNSHAssessment | undefined;
+  let dnshPenalty = 0;
+
+  try {
+    console.log('[Greenwash Detector] Running DNSH (EU Taxonomy Article 17) evaluation...');
+    dnshResult = await evaluateDNSH(project, documentText);
+    dnshPenalty = dnshToGreenwashPenalty(dnshResult.normalizedScore);
+    console.log(`[Greenwash Detector] DNSH: ${dnshResult.overallStatus}, Score: ${dnshResult.normalizedScore}/100, Penalty: ${dnshPenalty}`);
+  } catch (error) {
+    console.error('[Greenwash Detector] DNSH evaluation failed:', error);
+    // Continue without DNSH - it's an enhancement, not a requirement
+  }
+
+  if (mode === 'rule') {
+    console.log('[Greenwash Detector] Mode: rule-based (DNSH evaluated separately)');
+    const ruleBasedPenalty = calculatePenaltyFromRiskScore(ruleBasedResult.riskScore);
+    // DNSH is a SEPARATE score, not part of greenwashing penalty
+    // LMA score and DNSH score are displayed independently
+    const combinedPenalty = ruleBasedPenalty;
+
     return {
       ...ruleBasedResult,
       aiEvaluationUsed: false,
-      combinedPenalty: calculatePenaltyFromRiskScore(ruleBasedResult.riskScore)
+      combinedPenalty,
+      // DNSH is still returned for separate display, but doesn't affect LMA score
+      dnshAssessment: dnshResult,
+      dnshPenalty: dnshResult ? dnshPenalty : undefined
     };
   }
 
@@ -710,16 +746,16 @@ export async function detectGreenwashingEnhanced(
   const aiPenalty = aiScoreToGreenwashPenalty(aiResult.totalScore);
   const ruleBasedPenalty = calculatePenaltyFromRiskScore(ruleBasedResult.riskScore);
 
-  // Determine final penalty based on mode
+  // Determine final penalty based on mode (DNSH is separate, not part of greenwashing penalty)
   let combinedPenalty: number;
   if (mode === 'ai') {
-    // AI-only mode: 100% AI weight
+    // AI-only mode: just AI penalty (DNSH displayed separately)
     combinedPenalty = aiPenalty;
-    console.log(`[Greenwash Detector] Mode: AI-only, Penalty: ${combinedPenalty}`);
+    console.log(`[Greenwash Detector] Mode: AI (DNSH separate), Penalty: ${combinedPenalty}`);
   } else {
-    // Hybrid mode (default): 60% AI weight, 40% rule-based weight
+    // Hybrid mode: 60% AI + 40% rule-based (DNSH displayed separately)
     combinedPenalty = Math.round(aiPenalty * 0.6 + ruleBasedPenalty * 0.4);
-    console.log(`[Greenwash Detector] Mode: hybrid, AI: ${aiResult.totalScore}/100, Rule-based: ${ruleBasedResult.riskScore}, Combined penalty: ${combinedPenalty}`);
+    console.log(`[Greenwash Detector] Mode: hybrid (DNSH separate), AI: ${aiResult.totalScore}/100, Rule-based: ${ruleBasedResult.riskScore}, DNSH: ${dnshResult?.normalizedScore || 'N/A'}, Combined penalty: ${combinedPenalty}`);
   }
 
   // Determine combined risk level
@@ -762,7 +798,10 @@ export async function detectGreenwashingEnhanced(
     aiSummary: aiResult.summary,
     aiTopConcerns: aiResult.topConcerns,
     aiPositiveFindings: aiResult.positiveFindings,
-    combinedPenalty
+    combinedPenalty,
+    // DNSH (EU Taxonomy Article 17) integration
+    dnshAssessment: dnshResult,
+    dnshPenalty: dnshResult ? dnshPenalty : undefined
   };
 }
 

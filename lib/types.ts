@@ -374,6 +374,130 @@ export interface SearchResult {
 }
 
 // ============================================
+// DNSH (DO NO SIGNIFICANT HARM) - EU TAXONOMY
+// ============================================
+
+// EU Taxonomy Article 17 - 6 Environmental Objectives
+export const DNSH_OBJECTIVES = [
+  'climate_mitigation',
+  'climate_adaptation',
+  'water_resources',
+  'circular_economy',
+  'pollution_prevention',
+  'biodiversity'
+] as const;
+export type DNSHObjective = typeof DNSH_OBJECTIVES[number];
+
+export const DNSH_OBJECTIVE_NAMES: Record<DNSHObjective, string> = {
+  climate_mitigation: 'Climate Change Mitigation',
+  climate_adaptation: 'Climate Change Adaptation',
+  water_resources: 'Water & Marine Resources',
+  circular_economy: 'Circular Economy',
+  pollution_prevention: 'Pollution Prevention',
+  biodiversity: 'Biodiversity & Ecosystems'
+};
+
+export type DNSHStatus = 'no_harm' | 'potential_harm' | 'significant_harm' | 'not_assessed';
+
+export interface DNSHCriterionResult {
+  objective: DNSHObjective;
+  objectiveName: string;
+  status: DNSHStatus;
+  score: number;  // 0-4 (4 = no harm, 0 = significant harm)
+  maxScore: 4;
+  evidence: string;
+  concern?: string;
+  isFundamentallyIncompatible?: boolean;  // True = no workaround possible
+  recommendation?: string;  // Only for fixable issues
+}
+
+export interface DNSHAssessment {
+  overallStatus: 'compliant' | 'partial' | 'non_compliant';
+  totalScore: number;  // 0-24 (sum of 6 objectives)
+  normalizedScore: number;  // 0-100 for display
+  criteria: DNSHCriterionResult[];
+  summary: string;
+  keyRisks: string[];
+  recommendations: string[];  // Only for fixable issues
+  // Fundamental incompatibility - when project type itself is incompatible
+  isFundamentallyIncompatible?: boolean;
+  incompatibilityReason?: string;  // e.g., "Fossil fuel extraction is incompatible with EU Taxonomy climate objectives"
+}
+
+// ============================================
+// LOCATION RISK & CLIMATE RESILIENCE
+// ============================================
+
+export interface GeoCoordinates {
+  latitude: number;
+  longitude: number;
+  locationName?: string;
+}
+
+export interface ClimateRiskMetric {
+  indicator: string;
+  value: number;
+  unit: string;
+  trend: 'increasing' | 'stable' | 'decreasing';
+  riskLevel: RiskLevel;
+  description: string;
+}
+
+export interface HistoricalClimateData {
+  averageTemperature: number;  // °C
+  temperatureVariability: number;  // std dev
+  annualPrecipitation: number;  // mm/year
+  precipitationVariability: number;
+  drySeasonMonths: number[];  // 1-12
+  extremeHeatDays: number;  // days > 35°C per year
+  droughtRisk: RiskLevel;
+  floodRisk: RiskLevel;
+}
+
+export type ClimateScenario = 'SSP1-2.6' | 'SSP2-4.5' | 'SSP5-8.5';
+export type ProjectionYear = 2030 | 2050;
+
+export interface ClimateProjection {
+  scenario: ClimateScenario;
+  year: ProjectionYear;
+  temperatureChange: number;  // °C above baseline
+  precipitationChange: number;  // % change
+  extremeEventFrequency: number;  // multiplier
+}
+
+export interface SiteIntelligence {
+  optimalOperatingMonths: number[];  // 1-12
+  operatingContext?: string;  // human-readable (e.g., "year-round", "6-month growing season")
+  waterAvailability: 'abundant' | 'moderate' | 'scarce';
+  solarPotential?: number;  // kWh/m²/day (for energy projects)
+  agriculturalSuitability?: string;  // for agriculture projects
+}
+
+// Key insight with decision-relevant context
+export interface KeyInsight {
+  icon: 'water' | 'sun' | 'temp' | 'calendar' | 'warning' | 'check';
+  headline: string;  // e.g., "Irrigation Required"
+  detail: string;    // e.g., "545mm annual rainfall is below 800mm threshold for rainfed farming"
+  action?: string;   // e.g., "Budget $2,000-4,000/hectare for drip irrigation"
+  severity: 'positive' | 'neutral' | 'caution';
+  source?: string;   // Citation for transparency, e.g., "FAO Paper 56"
+}
+
+export interface LocationRiskAssessment {
+  coordinates: GeoCoordinates;
+  historicalData: HistoricalClimateData;
+  projections: ClimateProjection[];
+  riskMetrics: ClimateRiskMetric[];
+  overallRiskScore: number;  // 0-100 (higher = more risk)
+  keyInsights: KeyInsight[];  // AHAA moments - decision-relevant insights
+  resilienceOpportunities: string[];  // Positive framing
+  siteIntelligence: SiteIntelligence;
+  recommendations: string[];
+  dataSource: 'open-meteo';
+  assessmentDate: string;
+}
+
+// ============================================
 // AI CHAT TYPES
 // ============================================
 

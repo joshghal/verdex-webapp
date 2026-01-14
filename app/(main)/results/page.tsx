@@ -8,6 +8,7 @@ import autoTable from 'jspdf-autotable';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { formatClauseContent } from '@/lib/clauseFormatter';
+import { GreenwashingRiskCard, LocationProfileCard } from '@/components/results';
 
 // Register ScrollTrigger plugin
 gsap.registerPlugin(ScrollTrigger);
@@ -103,6 +104,79 @@ interface AssessmentResult {
     aiSummary?: string;
     aiTopConcerns?: string[];
     aiPositiveFindings?: string[];
+    // DNSH Assessment (EU Taxonomy Article 17)
+    dnshAssessment?: {
+      overallStatus: 'compliant' | 'partial' | 'non_compliant';
+      totalScore: number;
+      normalizedScore: number;
+      criteria: {
+        objective: string;
+        objectiveName: string;
+        status: 'no_harm' | 'potential_harm' | 'significant_harm' | 'not_assessed';
+        score: number;
+        maxScore: number;
+        evidence: string;
+        concern?: string;
+        recommendation?: string;
+      }[];
+      summary: string;
+      keyRisks: string[];
+      recommendations: string[];
+    };
+    dnshPenalty?: number;
+  };
+  // Climate Resilience Profile
+  locationRisk?: {
+    coordinates: {
+      latitude: number;
+      longitude: number;
+      locationName?: string;
+    };
+    overallRiskScore: number;
+    historicalData: {
+      averageTemperature: number;
+      temperatureVariability: number;
+      annualPrecipitation: number;
+      precipitationVariability: number;
+      drySeasonMonths: number[];
+      extremeHeatDays: number;
+      droughtRisk: 'low' | 'medium' | 'high';
+      floodRisk: 'low' | 'medium' | 'high';
+    };
+    projections: {
+      scenario: string;
+      year: number;
+      temperatureChange: number;
+      precipitationChange: number;
+      extremeEventFrequency: number;
+    }[];
+    riskMetrics: {
+      indicator: string;
+      value: number;
+      unit: string;
+      trend: 'increasing' | 'stable' | 'decreasing';
+      riskLevel: 'low' | 'medium' | 'high';
+      description: string;
+    }[];
+    keyInsights?: {
+      icon: 'water' | 'sun' | 'temp' | 'calendar' | 'warning' | 'check';
+      headline: string;
+      detail: string;
+      action?: string;
+      severity: 'positive' | 'neutral' | 'caution';
+      source?: string;
+    }[];
+    resilienceOpportunities: string[];
+    siteIntelligence: {
+      optimalOperatingMonths: number[];
+      operatingContext?: string;
+      waterAvailability: 'abundant' | 'moderate' | 'scarce';
+      solarPotential?: number;
+      agriculturalSuitability?: string;
+    };
+    recommendations: string[];
+    dataSource: string;
+    assessmentDate: string;
   };
   dfiMatches: {
     id: string;
@@ -664,6 +738,247 @@ function exportToPDF(result: AssessmentResult, relevantClauses?: RelevantClause[
   doc.save(fileName);
 }
 
+// ============================================================================
+// KPI & SPT COLLAPSIBLE SECTION
+// ============================================================================
+interface KpiSptSectionProps {
+  kpiRecommendations: AssessmentResult['kpiRecommendations'];
+  sptRecommendations?: AssessmentResult['sptRecommendations'];
+  frameworksReferenced?: string[];
+  kpiAiGenerated?: boolean;
+}
+
+function KpiSptSection({ kpiRecommendations, sptRecommendations, frameworksReferenced, kpiAiGenerated }: KpiSptSectionProps) {
+  const [kpisExpanded, setKpisExpanded] = useState(false);
+  const [sptsExpanded, setSptsExpanded] = useState(false);
+
+  const kpiCount = kpiRecommendations?.length || 0;
+  const sptCount = sptRecommendations?.length || 0;
+
+  // Show first item as preview, rest when expanded
+  const visibleKpis = kpisExpanded ? kpiRecommendations : kpiRecommendations?.slice(0, 1);
+  const visibleSpts = sptsExpanded ? sptRecommendations : sptRecommendations?.slice(0, 1);
+
+  return (
+    <div className="rounded-3xl p-6 result-card border-[1px] border-gray-100">
+      {/* Header with summary */}
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <h2 className="text-xl font-display font-medium">Recommended KPIs & SPTs</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            {kpiCount} KPI{kpiCount !== 1 ? 's' : ''} · {sptCount} SPT{sptCount !== 1 ? 's' : ''}
+          </p>
+        </div>
+        {kpiAiGenerated && (
+          <span className="bg-gradient-to-r from-verdex-600 to-teal-500 text-white text-xs px-2 py-1 rounded-full">
+            AI Generated
+          </span>
+        )}
+      </div>
+
+      {/* Frameworks Referenced */}
+      {frameworksReferenced && frameworksReferenced.length > 0 && (
+        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+          <p className="text-xs text-gray-600 mb-2">Based on official frameworks:</p>
+          <div className="flex flex-wrap gap-2">
+            {frameworksReferenced.map((fw, i) => (
+              <span key={i} className="bg-white border border-gray-200 text-gray-700 text-xs px-2 py-1 rounded">
+                {fw}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* KPIs - Collapsible */}
+      <div className="mb-6">
+        <button
+          onClick={() => setKpisExpanded(!kpisExpanded)}
+          className="w-full font-medium text-gray-700 mb-3 flex items-center justify-between hover:bg-gray-50 -mx-2 px-2 py-1 rounded-lg transition-colors"
+        >
+          <span className="flex items-center gap-2">
+            <span className="bg-verdex-600 text-white px-2 py-0.5 rounded text-xs font-semibold">KPIs</span>
+            Key Performance Indicators
+          </span>
+          <span className="flex items-center gap-2 text-sm text-gray-500">
+            {!kpisExpanded && kpiCount > 1 && <span>+{kpiCount - 1} more</span>}
+            <svg
+              className={`w-5 h-5 transition-transform ${kpisExpanded ? 'rotate-180' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </span>
+        </button>
+
+        <div className="space-y-3">
+          {visibleKpis?.map((kpi, i) => (
+            <div key={i} className="bg-verdex-100 border border-verdex-300 rounded-xl p-4">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-8 h-8 bg-verdex-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-verdex-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-verdex-900">{kpi.name}</p>
+                  <p className="text-xs text-verdex-700 mt-0.5">{kpi.description}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 bg-white/70 rounded-lg p-3">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Unit</p>
+                  <p className="text-sm font-medium text-gray-800">{kpi.unit}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Target</p>
+                  <p className="text-sm font-semibold text-verdex-700">{kpi.suggestedTarget}</p>
+                </div>
+              </div>
+              {(kpi.source || kpi.rationale) && (
+                <div className="mt-3 pt-3 border-t border-verdex-300 text-xs">
+                  {kpi.source && (
+                    <span className="inline-block bg-verdex-600 text-white px-2 py-0.5 rounded mr-2">
+                      {kpi.source}
+                    </span>
+                  )}
+                  {kpi.rationale && (
+                    <span className="text-gray-700">{kpi.rationale}</span>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Show more/less button for KPIs */}
+        {kpiCount > 1 && (
+          <button
+            onClick={() => setKpisExpanded(!kpisExpanded)}
+            className="w-full mt-3 py-2 text-sm text-verdex-600 hover:text-verdex-700 hover:bg-verdex-50 rounded-lg transition-colors flex items-center justify-center gap-1"
+          >
+            {kpisExpanded ? (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                </svg>
+                Show less
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+                Show all {kpiCount} KPIs
+              </>
+            )}
+          </button>
+        )}
+      </div>
+
+      {/* SPTs - Collapsible */}
+      {sptRecommendations && sptRecommendations.length > 0 && (
+        <div>
+          <button
+            onClick={() => setSptsExpanded(!sptsExpanded)}
+            className="w-full font-medium text-gray-700 mb-3 flex items-center justify-between hover:bg-gray-50 -mx-2 px-2 py-1 rounded-lg transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <span className="bg-teal-600 text-white px-2 py-0.5 rounded text-xs font-semibold">SPTs</span>
+              Sustainability Performance Targets
+            </span>
+            <span className="flex items-center gap-2 text-sm text-gray-500">
+              {!sptsExpanded && sptCount > 1 && <span>+{sptCount - 1} more</span>}
+              <svg
+                className={`w-5 h-5 transition-transform ${sptsExpanded ? 'rotate-180' : ''}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </span>
+          </button>
+
+          <div className="space-y-3">
+            {visibleSpts?.map((spt, i) => (
+              <div key={i} className="bg-teal-100 border border-teal-300 rounded-xl p-4">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-8 h-8 bg-teal-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 text-teal-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-teal-900">{spt.name}</p>
+                  </div>
+                  <span className="bg-teal-600 text-white px-2 py-1 rounded text-xs font-mono flex-shrink-0">
+                    {spt.marginImpact}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 bg-white/70 rounded-lg p-3 mb-3">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Baseline</p>
+                    <p className="text-sm font-medium text-gray-800">{spt.baseline}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Target</p>
+                    <p className="text-sm font-semibold text-teal-700">{spt.target}</p>
+                  </div>
+                </div>
+                {(spt.verificationMethod || spt.source) && (
+                  <div className="text-xs">
+                    {spt.verificationMethod && (
+                      <p className="text-gray-700 mb-2">
+                        <span className="font-medium">Verification:</span> {spt.verificationMethod}
+                      </p>
+                    )}
+                    {spt.source && (
+                      <span className="inline-block bg-teal-600 text-white px-2 py-0.5 rounded">
+                        {spt.source}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Show more/less button for SPTs */}
+          {sptCount > 1 && (
+            <button
+              onClick={() => setSptsExpanded(!sptsExpanded)}
+              className="w-full mt-3 py-2 text-sm text-teal-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors flex items-center justify-center gap-1"
+            >
+              {sptsExpanded ? (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                  </svg>
+                  Show less
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                  Show all {sptCount} SPTs
+                </>
+              )}
+            </button>
+          )}
+
+          <p className="text-xs text-gray-500 mt-3">
+            SPTs are linked to loan margin adjustments. Meeting targets reduces interest rate; missing them increases it.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ResultsPage() {
   const router = useRouter();
   const [result, setResult] = useState<AssessmentResult | null>(null);
@@ -740,6 +1055,7 @@ export default function ResultsPage() {
             'sustainability linked',
             result.sector,
             kpiTerms,
+            sptTerms,
             result.eligibilityStatus === 'eligible' ? 'margin adjustment KPI SPT' : 'eligibility criteria',
           ].filter(Boolean).join(' ');
 
@@ -1236,18 +1552,52 @@ export default function ResultsPage() {
 
               {/* Right: Score and actions */}
               <div className="flex items-center gap-6 lg:gap-8">
-                {/* Score display */}
-                <div>
-                  <p className="text-xs text-white/80 uppercase tracking-wide mb-1">Overall Score</p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-4xl lg:text-5xl font-semibold text-white">{result.overallScore}</span>
-                    <span className="text-lg text-white/70">/ 100</span>
-                  </div>
-                  {(result.greenwashingPenalty ?? 0) > 0 && (
-                    <p className="text-sm text-white/90 mt-1">
-                      {result.lmaBaseScore} base <span className="text-white">−{result.greenwashingPenalty} risk penalty</span>
+                {/* Score display - LMA + DNSH */}
+                <div className="flex items-stretch gap-4">
+                  {/* LMA Score */}
+                  <div className="text-center min-w-[72px]">
+                    <p className="text-[10px] text-white/60 uppercase tracking-wide mb-1">LMA</p>
+                    <div className="flex items-baseline justify-center gap-0.5">
+                      <span className="text-3xl lg:text-4xl font-semibold text-white">{result.overallScore}</span>
+                      <span className="text-xs text-white/40">/100</span>
+                    </div>
+                    <p className="text-[10px] text-white/50 mt-0.5 h-4">
+                      {(result.greenwashingPenalty ?? 0) > 0 ? `${result.lmaBaseScore} − ${result.greenwashingPenalty}` : 'Transition'}
                     </p>
-                  )}
+                  </div>
+
+                  {/* Divider */}
+                  <div className="w-px bg-white/20 self-stretch my-1" />
+
+                  {/* DNSH Status */}
+                  <div className="text-center min-w-[72px]">
+                    <p className="text-[10px] text-white/60 uppercase tracking-wide mb-1">DNSH</p>
+                    {result.greenwashingRisk.dnshAssessment ? (
+                      <>
+                        <div className="flex items-baseline justify-center gap-0.5">
+                          <span className={`text-3xl lg:text-4xl font-semibold ${
+                            result.greenwashingRisk.dnshAssessment.overallStatus === 'compliant' ? 'text-emerald-300' :
+                            result.greenwashingRisk.dnshAssessment.overallStatus === 'partial' ? 'text-amber-300' : 'text-rose-300'
+                          }`}>
+                            {result.greenwashingRisk.dnshAssessment.normalizedScore}
+                          </span>
+                          <span className="text-xs text-white/40">/100</span>
+                        </div>
+                        <p className={`text-[10px] mt-0.5 h-4 ${
+                          result.greenwashingRisk.dnshAssessment.overallStatus === 'compliant' ? 'text-emerald-300/70' :
+                          result.greenwashingRisk.dnshAssessment.overallStatus === 'partial' ? 'text-amber-300/70' : 'text-rose-300/70'
+                        }`}>
+                          {result.greenwashingRisk.dnshAssessment.overallStatus === 'compliant' ? 'Aligned' :
+                           result.greenwashingRisk.dnshAssessment.overallStatus === 'partial' ? 'Partial' : 'Not Aligned'}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-3xl lg:text-4xl font-semibold text-white/30">—</span>
+                        <p className="text-[10px] text-white/40 mt-0.5 h-4">N/A</p>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {/* Desktop actions */}
@@ -1449,363 +1799,22 @@ export default function ResultsPage() {
               </div>
             </div>
 
-            {/* KPI & SPT Recommendations */}
+            {/* KPI & SPT Recommendations - Collapsible */}
             {(result.kpiRecommendations && result.kpiRecommendations.length > 0) && (
-              <div className="rounded-3xl p-6 result-card border-[1px] border-gray-100">
-                <div className="flex justify-between items-start mb-4 ">
-                  <h2 className="text-xl font-display font-medium">Recommended KPIs & SPTs</h2>
-                  {result.kpiAiGenerated && (
-                    <span className="bg-gradient-to-r from-verdex-600 to-teal-500 text-white text-xs px-2 py-1 rounded-full">
-                      AI Generated
-                    </span>
-                  )}
-                </div>
-
-                {/* Frameworks Referenced */}
-                {result.frameworksReferenced && result.frameworksReferenced.length > 0 && (
-                  <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-600 mb-2">Based on official frameworks:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {result.frameworksReferenced.map((fw, i) => (
-                        <span key={i} className="bg-white border border-gray-200 text-gray-700 text-xs px-2 py-1 rounded">
-                          {fw}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* KPIs */}
-                <div className="mb-6">
-                  <h3 className="font-medium text-gray-700 mb-3 flex items-center gap-2">
-                    <span className="bg-verdex-600 text-white px-2 py-0.5 rounded text-xs font-semibold">KPIs</span>
-                    Key Performance Indicators to Track
-                  </h3>
-                  <div className="space-y-3">
-                    {result.kpiRecommendations.map((kpi, i) => (
-                      <div key={i} className="bg-verdex-100 border border-verdex-300 rounded-xl p-4">
-                        <div className="flex items-start gap-3 mb-3">
-                          <div className="w-8 h-8 bg-verdex-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <svg className="w-4 h-4 text-verdex-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-verdex-900">{kpi.name}</p>
-                            <p className="text-xs text-verdex-700 mt-0.5">{kpi.description}</p>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 bg-white/70 rounded-lg p-3">
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">Unit</p>
-                            <p className="text-sm font-medium text-gray-800">{kpi.unit}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">Target</p>
-                            <p className="text-sm font-semibold text-verdex-700">{kpi.suggestedTarget}</p>
-                          </div>
-                        </div>
-                        {(kpi.source || kpi.rationale) && (
-                          <div className="mt-3 pt-3 border-t border-verdex-300 text-xs">
-                            {kpi.source && (
-                              <span className="inline-block bg-verdex-600 text-white px-2 py-0.5 rounded mr-2">
-                                {kpi.source}
-                              </span>
-                            )}
-                            {kpi.rationale && (
-                              <span className="text-gray-700">{kpi.rationale}</span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* SPTs */}
-                {result.sptRecommendations && result.sptRecommendations.length > 0 && (
-                  <div>
-                    <h3 className="font-medium text-gray-700 mb-3 flex items-center gap-2">
-                      <span className="bg-teal-600 text-white px-2 py-0.5 rounded text-xs font-semibold">SPTs</span>
-                      Sustainability Performance Targets (Margin-Linked)
-                    </h3>
-                    <div className="space-y-3">
-                      {result.sptRecommendations.map((spt, i) => (
-                        <div key={i} className="bg-teal-100 border border-teal-300 rounded-xl p-4">
-                          <div className="flex items-start gap-3 mb-3">
-                            <div className="w-8 h-8 bg-teal-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <svg className="w-4 h-4 text-teal-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                              </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-teal-900">{spt.name}</p>
-                            </div>
-                            <span className="bg-teal-600 text-white px-2 py-1 rounded text-xs font-mono flex-shrink-0">
-                              {spt.marginImpact}
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-3 bg-white/70 rounded-lg p-3 mb-3">
-                            <div>
-                              <p className="text-xs text-gray-500 mb-1">Baseline</p>
-                              <p className="text-sm font-medium text-gray-800">{spt.baseline}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500 mb-1">Target</p>
-                              <p className="text-sm font-semibold text-teal-700">{spt.target}</p>
-                            </div>
-                          </div>
-                          {(spt.verificationMethod || spt.source) && (
-                            <div className="text-xs">
-                              {spt.verificationMethod && (
-                                <p className="text-gray-700 mb-2">
-                                  <span className="font-medium">Verification:</span> {spt.verificationMethod}
-                                </p>
-                              )}
-                              {spt.source && (
-                                <span className="inline-block bg-teal-600 text-white px-2 py-0.5 rounded">
-                                  {spt.source}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-3">
-                      SPTs are linked to loan margin adjustments. Meeting targets reduces interest rate; missing them increases it.
-                    </p>
-                  </div>
-                )}
-              </div>
+              <KpiSptSection
+                kpiRecommendations={result.kpiRecommendations}
+                sptRecommendations={result.sptRecommendations}
+                frameworksReferenced={result.frameworksReferenced}
+                kpiAiGenerated={result.kpiAiGenerated}
+              />
             )}
 
-            {/* Greenwashing Risk - manual validation always shown, AI analysis conditionally */}
-            <div className="bg-white rounded-2xl border border-gray-100 result-card overflow-hidden">
-              <div className="px-6 py-5 border-b border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-display font-medium text-gray-900">Greenwashing Risk Assessment</h2>
-                    <p className="text-sm text-gray-500 mt-1">Credibility analysis of sustainability claims</p>
-                  </div>
-                  <div className="text-right">
-                    <div className={`text-2xl font-semibold ${
-                      result.greenwashingRisk.level === 'low' ? 'text-verdex-600' :
-                      result.greenwashingRisk.level === 'medium' ? 'text-amber-600' : 'text-rose-600'
-                    }`}>
-                      {result.greenwashingRisk.score}
-                      <span className="text-sm font-normal text-gray-400">/100</span>
-                    </div>
-                    <span className={`text-xs font-medium uppercase tracking-wide ${
-                      result.greenwashingRisk.level === 'low' ? 'text-verdex-600' :
-                      result.greenwashingRisk.level === 'medium' ? 'text-amber-600' : 'text-rose-600'
-                    }`}>
-                      {result.greenwashingRisk.level} risk
-                    </span>
-                  </div>
-                </div>
+            {/* Greenwashing Risk Assessment */}
+            <GreenwashingRiskCard
+              greenwashingRisk={result.greenwashingRisk}
+              greenwashingPenalty={result.greenwashingPenalty}
+            />
 
-                {(result.greenwashingPenalty ?? 0) > 0 && (
-                  <p className="text-xs text-rose-500 mt-3">
-                    Score penalty of {result.greenwashingPenalty} points applied to overall assessment
-                  </p>
-                )}
-              </div>
-
-              <div className="px-6 py-5">
-                {/* Two column layout for flags and indicators */}
-                <div className="grid md:grid-cols-2 gap-6">
-                  {/* Red Flags */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                      <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                        Concerns ({result.greenwashingRisk.redFlags.length})
-                      </span>
-                    </div>
-
-                    {result.greenwashingRisk.redFlags.length > 0 ? (
-                      <div className="space-y-2">
-                        {result.greenwashingRisk.redFlags.map((flag, i) => (
-                          <div key={i} className="border-l-2 border-rose-300 pl-3 py-1.5">
-                            <p className="text-sm text-gray-700">{flag.description}</p>
-                            <p className="text-xs text-gray-500 mt-1">{flag.recommendation}</p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-sm text-gray-400 italic">No red flags identified</div>
-                    )}
-                  </div>
-
-                  {/* Positive Indicators */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="w-1.5 h-1.5 rounded-full bg-verdex-400" />
-                      <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                        Positive Signals ({result.greenwashingRisk.positiveIndicators.length})
-                      </span>
-                    </div>
-
-                    {result.greenwashingRisk.positiveIndicators.length > 0 ? (
-                      <div className="space-y-2">
-                        {result.greenwashingRisk.positiveIndicators.map((indicator, i) => (
-                          <div key={i} className="flex items-start gap-2 py-1.5">
-                            <span className="w-4 h-4 rounded-full bg-verdex-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-verdex-500" />
-                            </span>
-                            <span className="text-sm text-gray-700">{indicator}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-sm text-gray-400 italic">No positive indicators identified</div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Recommendations if any */}
-                {result.greenwashingRisk.recommendations && result.greenwashingRisk.recommendations.length > 0 && (
-                  <div className="mt-6 pt-5 border-t border-gray-100">
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Recommendations</span>
-                    </div>
-                    <div className="space-y-2">
-                      {result.greenwashingRisk.recommendations.map((rec, i) => (
-                        <p key={i} className="text-sm text-gray-600 flex items-start gap-2">
-                          <span className="text-gray-300 mt-1">—</span>
-                          {rec}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* AI Greenwashing Analysis Breakdown - conditionally shown based on feature flag */}
-                {SHOW_AI_GREENWASH_SECTION && result.greenwashingRisk.aiEvaluationUsed && result.greenwashingRisk.aiBreakdown && (
-                  <div className="mt-6 pt-5 border-t border-gray-100">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                        <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">AI Analysis Breakdown</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-xs text-gray-500">
-                        <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full font-medium">
-                          {result.greenwashingRisk.aiScore}/100
-                        </span>
-                        <span className="text-gray-400">
-                          {result.greenwashingRisk.aiConfidence}% confidence
-                        </span>
-                      </div>
-                    </div>
-
-                    {result.greenwashingRisk.aiSummary && (
-                      <p className="text-sm text-gray-600 mb-4 p-3 bg-gray-50 rounded-lg">
-                        {result.greenwashingRisk.aiSummary}
-                      </p>
-                    )}
-
-                    <div className="space-y-4">
-                      {result.greenwashingRisk.aiBreakdown.map((component, idx) => (
-                        <div key={idx} className="border border-gray-100 rounded-lg overflow-hidden">
-                          <div className="px-4 py-3 bg-gray-50 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-sm text-gray-900">{component.componentName}</span>
-                              <span className="text-xs text-gray-400">({component.confidence}% conf.)</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full ${
-                                    component.score >= 20 ? 'bg-verdex-500' :
-                                    component.score >= 15 ? 'bg-amber-500' : 'bg-rose-500'
-                                  }`}
-                                  style={{ width: `${(component.score / component.maxScore) * 100}%` }}
-                                />
-                              </div>
-                              <span className={`text-sm font-semibold ${
-                                component.score >= 20 ? 'text-verdex-600' :
-                                component.score >= 15 ? 'text-amber-600' : 'text-rose-600'
-                              }`}>
-                                {component.score}/{component.maxScore}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="px-4 py-3 space-y-2">
-                            {component.findings.map((finding, fIdx) => (
-                              <div key={fIdx} className="flex items-start gap-3 py-1.5">
-                                <span className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${
-                                  finding.status === 'strong' ? 'bg-verdex-500' :
-                                  finding.status === 'adequate' ? 'bg-amber-500' :
-                                  finding.status === 'weak' ? 'bg-orange-500' : 'bg-rose-500'
-                                }`} />
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs font-medium text-gray-700">{finding.criterion}</span>
-                                    <span className={`text-xs px-1.5 py-0.5 rounded ${
-                                      finding.status === 'strong' ? 'bg-verdex-50 text-verdex-700' :
-                                      finding.status === 'adequate' ? 'bg-amber-50 text-amber-700' :
-                                      finding.status === 'weak' ? 'bg-orange-50 text-orange-700' : 'bg-rose-50 text-rose-700'
-                                    }`}>
-                                      {finding.points}/{finding.maxPoints}
-                                    </span>
-                                  </div>
-                                  <p className="text-xs text-gray-600 mt-0.5">{finding.evidence}</p>
-                                  {finding.concern && (
-                                    <p className="text-xs text-rose-600 mt-0.5 italic">{finding.concern}</p>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-
-                          {component.recommendations.length > 0 && (
-                            <div className="px-4 py-2 bg-blue-50/50 border-t border-gray-100">
-                              <p className="text-xs text-gray-500 mb-1">Recommendations:</p>
-                              <ul className="text-xs text-gray-600 space-y-0.5">
-                                {component.recommendations.slice(0, 3).map((rec, rIdx) => (
-                                  <li key={rIdx} className="flex items-start gap-1.5">
-                                    <span className="text-blue-400">→</span>
-                                    {rec}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* AI Top Concerns & Positive Findings */}
-                    {(result.greenwashingRisk.aiTopConcerns?.length || result.greenwashingRisk.aiPositiveFindings?.length) && (
-                      <div className="mt-4 grid grid-cols-2 gap-4">
-                        {result.greenwashingRisk.aiTopConcerns && result.greenwashingRisk.aiTopConcerns.length > 0 && (
-                          <div className="p-3 bg-rose-50/50 rounded-lg">
-                            <p className="text-xs font-medium text-rose-700 mb-2">Top AI Concerns</p>
-                            <ul className="text-xs text-rose-600 space-y-1">
-                              {result.greenwashingRisk.aiTopConcerns.map((concern, i) => (
-                                <li key={i}>• {concern}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        {result.greenwashingRisk.aiPositiveFindings && result.greenwashingRisk.aiPositiveFindings.length > 0 && (
-                          <div className="p-3 bg-verdex-50/50 rounded-lg">
-                            <p className="text-xs font-medium text-verdex-700 mb-2">AI Positive Findings</p>
-                            <ul className="text-xs text-verdex-600 space-y-1">
-                              {result.greenwashingRisk.aiPositiveFindings.map((finding, i) => (
-                                <li key={i}>• {finding}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
 
             {/* DFI Matches */}
             <div className="bg-white rounded-2xl border border-gray-100 result-card overflow-hidden">
@@ -1815,39 +1824,46 @@ export default function ResultsPage() {
               </div>
 
               <div className="divide-y divide-gray-100">
-                {result.dfiMatches.map((dfi, idx) => (
-                  <div key={idx} className={`px-6 py-4 ${idx % 2 === 1 ? 'bg-gray-50/50' : ''}`}>
-                    <div className="flex justify-between items-start gap-4 mb-2">
-                      <div className="min-w-0">
-                        <h3 className="font-medium text-gray-900">{dfi.name}</h3>
-                        <p className="text-xs text-gray-500 truncate">{dfi.fullName}</p>
+                {result.dfiMatches && result.dfiMatches.length > 0 ? (
+                  result.dfiMatches.map((dfi, idx) => (
+                    <div key={idx} className={`px-6 py-4 ${idx % 2 === 1 ? 'bg-gray-50/50' : ''}`}>
+                      <div className="flex justify-between items-start gap-4 mb-2">
+                        <div className="min-w-0">
+                          <h3 className="font-medium text-gray-900">{dfi.name}</h3>
+                          <p className="text-xs text-gray-500 truncate">{dfi.fullName}</p>
+                        </div>
+                        <span className="text-sm font-semibold text-verdex-600 flex-shrink-0">
+                          {dfi.matchScore}%
+                        </span>
                       </div>
-                      <span className="text-sm font-semibold text-verdex-600 flex-shrink-0">
-                        {dfi.matchScore}%
-                      </span>
-                    </div>
 
-                    <div className="flex flex-wrap items-center gap-2 mb-2 text-xs text-gray-500">
-                      <span>{dfi.recommendedRole.replace('_', ' ')}</span>
-                      {dfi.estimatedSize && dfi.estimatedSize.min > 0 && (
-                        <>
-                          <span className="text-gray-300">·</span>
-                          <span>
-                            {dfi.estimatedSize.max > 0 && dfi.estimatedSize.max >= dfi.estimatedSize.min
-                              ? `$${(dfi.estimatedSize.min / 1_000_000).toFixed(0)}M – $${(dfi.estimatedSize.max / 1_000_000).toFixed(0)}M`
-                              : `Min $${(dfi.estimatedSize.min / 1_000_000).toFixed(0)}M`}
-                          </span>
-                        </>
+                      <div className="flex flex-wrap items-center gap-2 mb-2 text-xs text-gray-500">
+                        <span>{dfi.recommendedRole.replace('_', ' ')}</span>
+                        {dfi.estimatedSize && dfi.estimatedSize.min > 0 && (
+                          <>
+                            <span className="text-gray-300">·</span>
+                            <span>
+                              {dfi.estimatedSize.max > 0 && dfi.estimatedSize.max >= dfi.estimatedSize.min
+                                ? `$${(dfi.estimatedSize.min / 1_000_000).toFixed(0)}M – $${(dfi.estimatedSize.max / 1_000_000).toFixed(0)}M`
+                                : `Min $${(dfi.estimatedSize.min / 1_000_000).toFixed(0)}M`}
+                            </span>
+                          </>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-gray-600">{dfi.matchReasons.join(' · ')}</p>
+
+                      {dfi.climateTarget && (
+                        <p className="text-xs text-verdex-600 mt-1">{dfi.climateTarget}</p>
                       )}
                     </div>
-
-                    <p className="text-xs text-gray-600">{dfi.matchReasons.join(' · ')}</p>
-
-                    {dfi.climateTarget && (
-                      <p className="text-xs text-verdex-600 mt-1">{dfi.climateTarget}</p>
-                    )}
+                  ))
+                ) : (
+                  <div className="px-6 py-8 text-center">
+                    <p className="text-sm text-gray-500">No DFI matches found for this project.</p>
+                    <p className="text-xs text-gray-400 mt-1">This may indicate the project needs more details or doesn&apos;t meet DFI criteria.</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>
@@ -1929,48 +1945,16 @@ export default function ResultsPage() {
               </div>
             </div>
 
-            {/* Country Info */}
-            {result.countryInfo && (
-              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100">
-                  <h2 className="text-sm font-semibold text-gray-900">Country Context</h2>
-                </div>
-                <div className="px-4 py-3">
-                  <dl className="space-y-2 text-xs">
-                    <div className="flex justify-between">
-                      <dt className="text-gray-400">Region</dt>
-                      <dd className="font-medium text-gray-700">{result.countryInfo.region.replace('_', ' ')}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-gray-400">Legal System</dt>
-                      <dd className="font-medium text-gray-700">{result.countryInfo.legalSystem.replace('_', ' ')}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-gray-400">Currency</dt>
-                      <dd className="font-medium text-gray-700">{result.countryInfo.currency}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-gray-400">Sovereign Rating</dt>
-                      <dd className="font-medium text-gray-700">{result.countryInfo.sovereignRating || 'N/A'}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-gray-400">Political Risk</dt>
-                      <dd className={`font-medium ${result.countryInfo.politicalRisk === 'low' ? 'text-verdex-600' :
-                        result.countryInfo.politicalRisk === 'medium' ? 'text-amber-600' : 'text-rose-600'
-                        }`}>
-                        {result.countryInfo.politicalRisk}
-                      </dd>
-                    </div>
-                  </dl>
-                  {result.countryInfo.ndcTarget && (
-                    <div className="mt-2.5 pt-2.5 border-t border-gray-100">
-                      <dt className="text-[10px] text-gray-400 mb-0.5">NDC Target</dt>
-                      <dd className="text-[11px] text-gray-500">{result.countryInfo.ndcTarget}</dd>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+            {/* Location & Country Context */}
+            <LocationProfileCard
+              locationRisk={result.locationRisk}
+              countryInfo={result.countryInfo}
+              country={result.country}
+              countryName={result.countryName}
+              sector={result.sector}
+              projectName={result.projectName}
+              projectDescription={result.description}
+            />
 
             {/* Assessment Info */}
             <div className="bg-gray-50 rounded-2xl border border-gray-100 p-5">
@@ -2157,6 +2141,7 @@ export default function ResultsPage() {
           </div>
         </div>
       )}
+
 
       {/* Draft Modal */}
       {draftModalOpen && generatedDraft && (
