@@ -517,7 +517,7 @@ export default function AssessPage() {
               </p>
               <div className="flex flex-wrap justify-center gap-2">
                 <a
-                  href="https://res.cloudinary.com/dap2zavrb/image/upload/v1766992675/ethiopia-coffee_njxyq4.pdf"
+                  href="https://res.cloudinary.com/dap2zavrb/image/upload/v1768395194/Yirgacheffe_Coffee_Producers_Union_Solar_Drying___Processing_Facility_Expansion_Project_Draft_2026-01-14_wwin8d.pdf"
                   download
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-full transition-colors"
                   target='_blank'

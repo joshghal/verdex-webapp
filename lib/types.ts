@@ -4,10 +4,10 @@
 // ENUMS & CONSTANTS
 // ============================================
 
-// LIMITATION: Only 7 countries currently supported with full data (country profiles, DFI eligibility, NDC targets).
+// LIMITATION: Only 8 countries currently supported with full data (country profiles, DFI eligibility, NDC targets).
 // Unsupported countries will default to 'kenya' during document extraction.
 export const AFRICAN_COUNTRIES = [
-  'kenya', 'nigeria', 'south_africa', 'tanzania', 'ghana', 'egypt', 'morocco'
+  'kenya', 'nigeria', 'south_africa', 'tanzania', 'ghana', 'egypt', 'morocco', 'ethiopia'
 ] as const;
 export type AfricanCountry = typeof AFRICAN_COUNTRIES[number];
 

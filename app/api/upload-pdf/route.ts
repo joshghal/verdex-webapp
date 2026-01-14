@@ -296,23 +296,45 @@ function extractWithFallbackRegex(text: string): {
 
   // Extract project name - try multiple patterns
   let projectName = '';
-  // Pattern 1: "# Project Name" or "## Project Name" at start of line
-  const titleMatch = text.match(/^#\s*([^\n#]+)/m) ||
-    text.match(/^##\s*([^\n#]+)/m);
-  if (titleMatch) {
-    projectName = titleMatch[1].trim();
+
+  // Pattern 0 (PRIORITY): Verdex AI-Generated Draft format
+  // Format: "Verdex AI-Generated Project Draft [PROJECT NAME] country | sector | Target DFI:"
+  const verdexDraftMatch = text.match(/Verdex\s+AI-Generated\s+Project\s+Draft\s+(.+?)(?:\s+(?:kenya|nigeria|south\s*africa|tanzania|ghana|egypt|morocco|ethiopia)\s*\|)/i);
+  if (verdexDraftMatch) {
+    projectName = verdexDraftMatch[1].trim();
+    console.log(`[Fallback Extract] Found Verdex draft format, extracted: "${projectName}"`);
   }
-  // Pattern 2: Verdex draft header format "Lagos Green Revolution Ltd"
+
+  // Pattern 0b: Alternative Verdex format with newlines
+  // "Verdex AI-Generated Project Draft\n[PROJECT NAME]\ncountry | sector"
   if (!projectName) {
-    const verdexTitleMatch = text.match(/^([A-Z][A-Za-z\s&]+(?:Ltd|LLC|Inc|Corp|Limited|Company|SA|PLC)?)\s*$/m);
-    if (verdexTitleMatch && verdexTitleMatch[1].length > 5 && verdexTitleMatch[1].length < 80) {
-      projectName = verdexTitleMatch[1].trim();
+    const verdexNewlineMatch = text.match(/Verdex\s+AI-Generated\s+Project\s+Draft[\s\n]+([^\n]+?)[\s\n]+(?:kenya|nigeria|south\s*africa|tanzania|ghana|egypt|morocco|ethiopia)/i);
+    if (verdexNewlineMatch && !verdexNewlineMatch[1].toLowerCase().includes('verdex')) {
+      projectName = verdexNewlineMatch[1].trim();
+      console.log(`[Fallback Extract] Found Verdex draft (newline format): "${projectName}"`);
+    }
+  }
+
+  // Pattern 1: "# Project Name" or "## Project Name" at start of line
+  if (!projectName) {
+    const titleMatch = text.match(/^#\s*([^\n#]+)/m) ||
+      text.match(/^##\s*([^\n#]+)/m);
+    if (titleMatch) {
+      projectName = titleMatch[1].trim();
+    }
+  }
+  // Pattern 2: Company name format "Lagos Green Revolution Ltd"
+  if (!projectName) {
+    const companyMatch = text.match(/^([A-Z][A-Za-z\s&]+(?:Ltd|LLC|Inc|Corp|Limited|Company|SA|PLC|Union|Cooperative))\s*$/m);
+    if (companyMatch && companyMatch[1].length > 5 && companyMatch[1].length < 80 &&
+        !companyMatch[1].toLowerCase().includes('verdex')) {
+      projectName = companyMatch[1].trim();
     }
   }
   // Pattern 3: Look for "Project Name:" or "Project:" label
   if (!projectName) {
     const labelMatch = text.match(/(?:project\s*name|project)\s*[:]\s*([^\n]+)/i);
-    if (labelMatch) {
+    if (labelMatch && !labelMatch[1].toLowerCase().includes('draft')) {
       projectName = labelMatch[1].trim();
     }
   }
@@ -321,10 +343,11 @@ function extractWithFallbackRegex(text: string): {
     const lines = text.split('\n').filter(l => l.trim().length > 0);
     for (const line of lines.slice(0, 10)) {
       const trimmed = line.trim();
-      // Skip short lines, all-caps headers like "EXECUTIVE SUMMARY", and common headers
+      // Skip short lines, all-caps headers, common headers, and Verdex branding
       if (trimmed.length > 10 && trimmed.length < 80 &&
           !trimmed.match(/^[A-Z\s]+$/) &&
           !trimmed.toLowerCase().includes('generated') &&
+          !trimmed.toLowerCase().includes('verdex') &&
           !trimmed.toLowerCase().includes('executive summary') &&
           !trimmed.toLowerCase().includes('table of contents')) {
         projectName = trimmed;

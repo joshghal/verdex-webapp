@@ -108,6 +108,18 @@ export const AFRICAN_COORDINATES: Record<AfricanCountry, LocationCoordinates> = 
       { name: 'Tangier', lat: 35.7595, lon: -5.8340 },
       { name: 'Ouarzazate', lat: 30.9189, lon: -6.8936 }  // Solar hub
     ]
+  },
+  ethiopia: {
+    country: 'Ethiopia',
+    capital: 'Addis Ababa',
+    latitude: 9.0320,
+    longitude: 38.7469,
+    alternativeLocations: [
+      { name: 'Dire Dawa', lat: 9.6009, lon: 41.8501 },
+      { name: 'Mekelle', lat: 13.4967, lon: 39.4753 },
+      { name: 'Hawassa', lat: 7.0504, lon: 38.4955 },
+      { name: 'Bahir Dar', lat: 11.5742, lon: 37.3614 }
+    ]
   }
 };
 
@@ -218,5 +230,10 @@ export const COUNTRY_CLIMATE_ZONES: Record<AfricanCountry, {
     primaryZone: 'Mediterranean/Semi-arid',
     characteristics: ['Coastal Mediterranean', 'Atlas mountains', 'Sahara transition'],
     keyRisks: ['Drought cycles', 'Desertification', 'Water stress']
+  },
+  ethiopia: {
+    primaryZone: 'Tropical Highland/Semi-arid',
+    characteristics: ['Highland cool zones', 'Rift Valley lakes', 'Seasonal rainfall (Kiremt)'],
+    keyRisks: ['Drought cycles', 'Deforestation', 'Water stress in lowlands', 'Flooding in Rift Valley']
   }
 };
